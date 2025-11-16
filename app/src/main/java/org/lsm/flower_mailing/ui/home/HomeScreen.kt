@@ -17,7 +17,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onLoggedOut: () -> Unit,
     onNavigateToAddLetter: () -> Unit,
-    onNavigateToLetterDetail: (Int) -> Unit
 ) {
     val userRole by viewModel.userRole.collectAsState()
     val isLoggedOut by viewModel.isLoggedOut.collectAsState()
@@ -84,7 +83,6 @@ fun HomeScreen(
                 startDestination = startDestination,
                 viewModel = viewModel,
                 onNavigateToAddLetter = onNavigateToAddLetter,
-                onNavigateToLetterDetail = onNavigateToLetterDetail,
             )
         }
     }

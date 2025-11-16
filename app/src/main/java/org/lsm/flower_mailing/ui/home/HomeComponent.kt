@@ -22,7 +22,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 @Composable
 fun HomeTopBar(
     title: String,
-    onSettingsClick: () -> Unit // 1. Renamed parameter
+    onSettingsClick: () -> Unit
 ) {
     TopAppBar(
         title = { Text(text = title) },

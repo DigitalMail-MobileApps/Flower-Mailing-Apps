@@ -44,7 +44,7 @@ import org.lsm.flower_mailing.ui.home.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun SuratMasukScreen(viewModel: HomeViewModel, onNavigateToLetterDetail: (Int) -> Unit) {
+fun SuratMasukScreen(viewModel: HomeViewModel) {
     val letters by viewModel.inboxSuratList.collectAsState()
     val isLoading by viewModel.isLoadingSurat.collectAsState()
     val errorMessage by viewModel.errorMessageSurat.collectAsState()
@@ -130,7 +130,7 @@ fun SuratMasukScreen(viewModel: HomeViewModel, onNavigateToLetterDetail: (Int) -
                             LetterListItem(
                                 letter = letter,
                                 onClick = {
-                                    onNavigateToLetterDetail(letter.id)
+                                    TODO()
                                 },
                                 modifier = Modifier.animateItem()
                             )

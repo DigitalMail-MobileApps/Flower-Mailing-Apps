@@ -38,8 +38,7 @@ import org.lsm.flower_mailing.ui.home.HomeViewModel
 @Composable
 fun UmumDashboardScreen(
     homeViewModel: HomeViewModel = viewModel(),
-    onNavigateToAddLetter: () -> Unit,
-    onNavigateToLetterDetail: (Int) -> Unit
+    onNavigateToAddLetter: () -> Unit
 ) {
     val userName by homeViewModel.userName.collectAsState()
     val userRole by homeViewModel.userRole.collectAsState()

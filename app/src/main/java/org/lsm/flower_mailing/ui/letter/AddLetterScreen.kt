@@ -1,9 +1,10 @@
-package org.lsm.flower_mailing.ui.add_letter
+package org.lsm.flower_mailing.ui.letter
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import android.content.Context
 import android.widget.DatePicker
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -32,12 +33,15 @@ fun AddLetterScreen(
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
-
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        viewModel.onFileSelected(uri)
+    }
     fun showDateTimePicker(
         onDateTimeSet: (Long) -> Unit
     ) {
         val calendar = Calendar.getInstance()
-
         val datePickerDialog = DatePickerDialog(
             context,
             { _: DatePicker, year: Int, month: Int, day: Int ->
@@ -65,6 +69,7 @@ fun AddLetterScreen(
         datePickerDialog.show()
     }
 
+    // Collect navigation event
     LaunchedEffect(Unit) {
         viewModel.navigateBack.collect {
             if (it) onNavigateBack()
@@ -99,6 +104,8 @@ fun AddLetterScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+
+            // ... (All FormTextField, FormDateField, and FormDropdown composables remain the same)
 
             Text(
                 text = "Detail Surat",
@@ -138,7 +145,6 @@ fun AddLetterScreen(
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Tanggal Surat (with Date & Time Picker)
                 FormDateField(
                     label = "Tanggal Surat",
                     value = viewModel.tanggalSurat.ifBlank { "Pilih Tanggal & Waktu" },
@@ -150,7 +156,6 @@ fun AddLetterScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Tanggal Masuk (with Date & Time Picker)
                 FormDateField(
                     label = "Tanggal Masuk",
                     value = viewModel.tanggalMasuk.ifBlank { "Pilih Tanggal & Waktu" },
@@ -184,6 +189,7 @@ fun AddLetterScreen(
                 maxLines = 2
             )
 
+
             Text(
                 text = "Lampiran",
                 style = MaterialTheme.typography.titleMedium,
@@ -192,9 +198,9 @@ fun AddLetterScreen(
             )
 
             UploadFileSection(
-                fileName = viewModel.filePath ?: "Belum ada file dipilih",
+                fileName = viewModel.fileName ?: "Belum ada file dipilih",
                 onSelectFile = {
-                    // TODO: open file picker and update viewModel.filePath
+                    filePickerLauncher.launch("*/*")
                 }
             )
 
@@ -208,12 +214,10 @@ fun AddLetterScreen(
                 )
             }
 
-            // --- NEW BUTTONS SECTION ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // "Simpan Draft" Button
                 OutlinedButton(
                     onClick = { viewModel.createLetter(isDraft = true) },
                     enabled = !viewModel.isLoading,
@@ -225,11 +229,10 @@ fun AddLetterScreen(
                 ) {
                     Text(
                         "Simpan Draft",
-                        fontSize = 14.sp, // Smaller text for secondary button
+                        fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }
-
                 Button(
                     onClick = { viewModel.createLetter(isDraft = false) },
                     enabled = !viewModel.isLoading,
@@ -248,7 +251,6 @@ fun AddLetterScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        // Text changed as requested
                         Text("Buat Surat Masuk", fontSize = 16.sp)
                     }
                 }
@@ -256,6 +258,9 @@ fun AddLetterScreen(
         }
     }
 }
+
+// --- (Private composables: FormTextField, FormDateField, FormDropdown, UploadFileSection) ---
+// ... (These are all unchanged from your last version) ...
 
 @Composable
 private fun FormTextField(
@@ -303,7 +308,7 @@ private fun FormDateField(
                     contentDescription = "Pilih tanggal & waktu"
                 )
             },
-            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 12.sp),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
             readOnly = true,
             enabled = false,
             colors = OutlinedTextFieldDefaults.colors(
@@ -387,7 +392,10 @@ private fun UploadFileSection(
             Text(
                 text = fileName,
                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false) // Allow text to shrink
             )
             Text(
                 "Pilih File",

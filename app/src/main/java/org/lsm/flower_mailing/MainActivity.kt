@@ -19,28 +19,23 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import org.lsm.flower_mailing.ui.SplashScreen
 import org.lsm.flower_mailing.ui.auth.ForgotPasswordScreen
 import org.lsm.flower_mailing.ui.auth.LoginScreen
 import org.lsm.flower_mailing.ui.auth.LoginViewModel
 import org.lsm.flower_mailing.ui.home.HomeScreen
 import org.lsm.flower_mailing.ui.theme.FlowermailingTheme
-import org.lsm.flower_mailing.ui.add_letter.AddLetterScreen
-import org.lsm.flower_mailing.ui.letter_detail.LetterDetailScreen
+import org.lsm.flower_mailing.ui.letter.AddLetterScreen
 
 private object Routes {
     const val Splash = "splash"
     const val Login = "login"
     const val Forgot = "forgot"
     const val Home = "home"
-    const val AddLetter = "add_letter"
-    const val LetterDetail = "letter_detail/{letterId}"
-    fun letterDetail(letterId: Int) = "letter_detail/$letterId"
+    const val AddLetter = "letter"
 
 }
 
@@ -90,7 +85,6 @@ private fun AppNavHost(
         forgotRoute(nav, loginViewModel)
         homeRoute(nav, loginViewModel)
         addLetterRoute(nav)
-        letterDetailRoute(nav)
     }
 }
 
@@ -168,8 +162,7 @@ private fun NavGraphBuilder.homeRoute(
                     }
                 }
             },
-            onNavigateToAddLetter = { nav.navigate(Routes.AddLetter) },
-            onNavigateToLetterDetail = { letterId -> nav.navigate(Routes.letterDetail(letterId)) },
+            onNavigateToAddLetter = { nav.navigate(Routes.AddLetter) }
         )
     }
 }
@@ -179,21 +172,6 @@ private fun NavGraphBuilder.addLetterRoute(
 ) {
     composable(Routes.AddLetter) {
         AddLetterScreen(
-            onNavigateBack = {
-                nav.popBackStack()
-            }
-        )
-    }
-}
-
-private fun NavGraphBuilder.letterDetailRoute(
-    nav: NavHostController
-) {
-    composable(
-        route = Routes.LetterDetail,
-        arguments = listOf(navArgument("letterId") { type = NavType.StringType })
-    ) {
-        LetterDetailScreen(
             onNavigateBack = {
                 nav.popBackStack()
             }

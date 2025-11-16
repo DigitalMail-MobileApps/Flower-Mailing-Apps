@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import org.lsm.flower_mailing.ui.home.HomeViewModel
 
 @Composable
-fun HistoryScreen(viewModel: HomeViewModel, onNavigateToLetterDetail: (Int) -> Unit) {
+fun HistoryScreen(viewModel: HomeViewModel) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(text = "History Page")
     }

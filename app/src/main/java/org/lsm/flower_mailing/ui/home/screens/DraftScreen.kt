@@ -21,9 +21,7 @@ import org.lsm.flower_mailing.ui.home.HomeViewModel
 
 @Composable
 fun DraftScreen(
-    viewModel: HomeViewModel,
-    onNavigateToDetail: (Int) -> Unit,
-    onNavigateToLetterDetail: (Int) -> Unit
+    viewModel: HomeViewModel
 ) {
     val letters by viewModel.draftSuratList.collectAsState()
     val isLoading by viewModel.isLoadingSurat.collectAsState()
@@ -55,7 +53,7 @@ fun DraftScreen(
             ) {
                 items(letters) { letter ->
                     LetterListItem(letter = letter, onClick = {
-                        onNavigateToLetterDetail(letter.id)
+                        TODO()
                     })
                 }
             }

@@ -42,8 +42,7 @@ fun HomeNavHost(
     navController: NavHostController,
     startDestination: String,
     viewModel: HomeViewModel,
-    onNavigateToAddLetter: () -> Unit,
-    onNavigateToLetterDetail: (Int) -> Unit
+    onNavigateToAddLetter: () -> Unit
 ) {
     NavHost(
         navController = navController,
@@ -63,16 +62,16 @@ fun HomeNavHost(
         }
 
         composable(HomeRoute.Home.route) {
-            UmumDashboardScreen(homeViewModel = viewModel, onNavigateToAddLetter = onNavigateToAddLetter, onNavigateToLetterDetail = onNavigateToLetterDetail)
+            UmumDashboardScreen(homeViewModel = viewModel, onNavigateToAddLetter = onNavigateToAddLetter,)
         }
         composable(HomeRoute.SuratMasuk.route) {
-            SuratMasukScreen(viewModel = viewModel, onNavigateToLetterDetail = onNavigateToLetterDetail)
+            SuratMasukScreen(viewModel = viewModel)
         }
         composable(HomeRoute.Draft.route) {
-            DraftScreen(viewModel = viewModel, onNavigateToDetail = onNavigateToLetterDetail, onNavigateToLetterDetail = onNavigateToLetterDetail)
+            DraftScreen(viewModel = viewModel)
         }
         composable(HomeRoute.History.route) {
-            HistoryScreen(viewModel = viewModel, onNavigateToLetterDetail = onNavigateToLetterDetail)
+            HistoryScreen(viewModel = viewModel)
         }
         composable(HomeRoute.DirekturDashboard.route) {
             DirekturDashboardScreen()
