@@ -31,7 +31,28 @@ data class Letter(
     val prioritas: String?,
 
     @SerializedName("isi_surat")
-    val isiSurat: String?
+    val isiSurat: String?,
+
+    @SerializedName("nomor_agenda")
+    val nomorAgenda: String,
+
+    @SerializedName("disposisi")
+    val disposisi: String?,
+
+    @SerializedName("tanggal_disposisi")
+    val tanggalDisposisi: String,
+
+    @SerializedName("bidang_tujuan")
+    val bidangTujuan: String?,
+
+    @SerializedName("kesimpulan")
+    val kesimpulan: String?,
+
+    @SerializedName("file_path")
+    val filePath: String?,
+
+    @SerializedName("created_at")
+    val createdAt: String
 )
 
 data class LetterDataPayload(

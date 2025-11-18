@@ -17,6 +17,8 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onLoggedOut: () -> Unit,
     onNavigateToAddLetter: () -> Unit,
+    onNavigateToLetterDetail: (Int) -> Unit,
+    onNavigateToNotifications: () -> Unit,
 ) {
     val userRole by viewModel.userRole.collectAsState()
     val isLoggedOut by viewModel.isLoggedOut.collectAsState()
@@ -28,24 +30,28 @@ fun HomeScreen(
         }
     }
 
-    val (navItems, startDestination) = when (userRole) {
-        "direktur" -> {
-            listOf(HomeRoute.DirekturDashboard) to HomeRoute.DirekturDashboard.route
+    val (navItems, startDestination) = when {
+        userRole.equals("direktur", ignoreCase = true) -> {
+            listOf(
+                HomeRoute.DirekturDashboard,
+                HomeRoute.SuratMasuk,
+                HomeRoute.History,
+            ) to HomeRoute.DirekturDashboard.route
         }
-        "adc" -> {
+        userRole.equals("adc", ignoreCase = true) -> {
             listOf(
                 HomeRoute.Home,
                 HomeRoute.SuratMasuk,
                 HomeRoute.Draft,
-                HomeRoute.History
+                HomeRoute.History,
             ) to HomeRoute.Home.route
         }
-        "bagian_umum" -> {
+        userRole.equals("bagian_umum", ignoreCase = true) -> {
             listOf(
                 HomeRoute.Home,
                 HomeRoute.SuratMasuk,
                 HomeRoute.Draft,
-                HomeRoute.History
+                HomeRoute.History,
             ) to HomeRoute.Home.route
         }
         else -> {
@@ -57,6 +63,7 @@ fun HomeScreen(
         topBar = {
             HomeTopBar(
                 title = "Flower Mailing",
+                userRole = userRole,
                 onSettingsClick = {
                     nestedNavController.navigate(HomeRoute.Settings.route) {
                         popUpTo(nestedNavController.graph.findStartDestination().id) {
@@ -65,7 +72,8 @@ fun HomeScreen(
                         launchSingleTop = true
                         restoreState = true
                     }
-                }
+                },
+                onNotificationClick = onNavigateToNotifications
             )
         },
         bottomBar = {
@@ -83,6 +91,7 @@ fun HomeScreen(
                 startDestination = startDestination,
                 viewModel = viewModel,
                 onNavigateToAddLetter = onNavigateToAddLetter,
+                onNavigateToLetterDetail = onNavigateToLetterDetail
             )
         }
     }

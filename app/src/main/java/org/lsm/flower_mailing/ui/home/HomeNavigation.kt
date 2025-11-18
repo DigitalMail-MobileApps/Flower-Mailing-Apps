@@ -35,6 +35,7 @@ sealed class HomeRoute(
     object History : HomeRoute("history", "History", Icons.Default.History)
     object DirekturDashboard : HomeRoute("direktur_dash", "Dashboard", Icons.Default.Home)
     object Settings : HomeRoute("settings", "Settings", Icons.Default.Settings)
+    object Notification : HomeRoute("notification", "Notification", Icons.Default.Settings)
 }
 
 @Composable
@@ -42,7 +43,8 @@ fun HomeNavHost(
     navController: NavHostController,
     startDestination: String,
     viewModel: HomeViewModel,
-    onNavigateToAddLetter: () -> Unit
+    onNavigateToAddLetter: () -> Unit,
+    onNavigateToLetterDetail: (Int) -> Unit
 ) {
     NavHost(
         navController = navController,
@@ -65,13 +67,13 @@ fun HomeNavHost(
             UmumDashboardScreen(homeViewModel = viewModel, onNavigateToAddLetter = onNavigateToAddLetter,)
         }
         composable(HomeRoute.SuratMasuk.route) {
-            SuratMasukScreen(viewModel = viewModel)
+            SuratMasukScreen(viewModel = viewModel, onNavigateToLetterDetail = onNavigateToLetterDetail)
         }
         composable(HomeRoute.Draft.route) {
-            DraftScreen(viewModel = viewModel)
+            DraftScreen(viewModel = viewModel, onNavigateToLetterDetail = onNavigateToLetterDetail)
         }
         composable(HomeRoute.History.route) {
-            HistoryScreen(viewModel = viewModel)
+            HistoryScreen(viewModel = viewModel, onNavigateToLetterDetail = onNavigateToLetterDetail)
         }
         composable(HomeRoute.DirekturDashboard.route) {
             DirekturDashboardScreen()

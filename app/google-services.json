@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "266309324453",
+    "project_id": "digimail-mobile",
+    "storage_bucket": "digimail-mobile.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:266309324453:android:40c63897c18dbc0a19c74c",
+        "android_client_info": {
+          "package_name": "org.lsm.flower_mailing"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAI4nTE7yHS3x2tnSWFQxuDAFwhDWXS7SE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

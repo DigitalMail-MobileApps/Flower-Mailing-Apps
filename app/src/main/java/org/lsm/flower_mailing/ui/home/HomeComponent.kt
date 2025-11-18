@@ -1,7 +1,7 @@
 package org.lsm.flower_mailing.ui.home
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Notifications // <-- Import
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -22,7 +22,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 @Composable
 fun HomeTopBar(
     title: String,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    onNotificationClick: () -> Unit,
+    userRole: String?
 ) {
     TopAppBar(
         title = { Text(text = title) },
@@ -32,6 +34,12 @@ fun HomeTopBar(
             actionIconContentColor = MaterialTheme.colorScheme.onPrimary
         ),
         actions = {
+            IconButton(onClick = onNotificationClick) {
+                Icon(
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = "Notifikasi"
+                )
+            }
             IconButton(onClick = onSettingsClick) {
                 Icon(
                     imageVector = Icons.Default.Settings,
@@ -39,8 +47,11 @@ fun HomeTopBar(
                 )
             }
         }
-
     )
+}
+
+private fun String.toFormattedRole(): String {
+    return this.split('_').joinToString(" ") { it.replaceFirstChar(Char::titlecase) }
 }
 
 @Composable

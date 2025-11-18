@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import org.lsm.flower_mailing.data.UserPreferencesRepository
 import org.lsm.flower_mailing.data.auth.ForgotPasswordRequest
 import org.lsm.flower_mailing.data.auth.LoginRequest
+import org.lsm.flower_mailing.notifications.TopicManager
 import org.lsm.flower_mailing.remote.RetrofitClient
 
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
@@ -55,6 +56,8 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 userPreferencesRepository.saveLoginData(
                     token, refreshToken, role, userName, userEmail
                 )
+
+                TopicManager.subscribeForRole(user.role)
 
                 _isLoggedIn.value = true
                 loginError = null

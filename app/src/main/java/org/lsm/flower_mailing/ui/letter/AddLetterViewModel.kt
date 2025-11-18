@@ -126,7 +126,6 @@ class AddLetterViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun createLetter(isDraft: Boolean) {
-        // ... (validation remains the same)
         if (judulSurat.isBlank() || pengirim.isBlank() || nomorSurat.isBlank()) {
             errorMessage = "Judul, Pengirim, dan Nomor Surat tidak boleh kosong."
             return
