@@ -13,17 +13,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import org.intellij.lang.annotations.JdkConstants
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,59 +41,53 @@ fun AddLetterScreen(
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val isSuratKeluar = viewModel.determinedJenisSurat == "keluar"
+    val screenTitle = if (isSuratKeluar) "Registrasi Surat Keluar" else "Registrasi Surat Masuk"
+    val partyLabel = if (isSuratKeluar) "Tujuan / Penerima" else "Pengirim Surat"
+    val submitButtonText = if (isSuratKeluar) "Simpan & Ajukan Verifikasi" else "Simpan & Teruskan"
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        viewModel.onFileSelected(uri)
-    }
-    fun showDateTimePicker(
-        onDateTimeSet: (Long) -> Unit
-    ) {
-        val calendar = Calendar.getInstance()
-        val datePickerDialog = DatePickerDialog(
+    ) { uri -> viewModel.onFileSelected(uri) }
+    fun showDateTimePicker(onDateTimeSet: (Long) -> Unit) {
+        val cal = Calendar.getInstance()
+        DatePickerDialog(
             context,
-            { _: DatePicker, year: Int, month: Int, day: Int ->
-                calendar.set(Calendar.YEAR, year)
-                calendar.set(Calendar.MONTH, month)
-                calendar.set(Calendar.DAY_OF_MONTH, day)
-
-                val timePickerDialog = TimePickerDialog(
+            { _, year, month, day ->
+                cal.set(year, month, day)
+                TimePickerDialog(
                     context,
-                    { _, hour: Int, minute: Int ->
-                        calendar.set(Calendar.HOUR_OF_DAY, hour)
-                        calendar.set(Calendar.MINUTE, minute)
-                        onDateTimeSet(calendar.timeInMillis)
+                    { _, hour, minute ->
+                        cal.set(Calendar.HOUR_OF_DAY, hour)
+                        cal.set(Calendar.MINUTE, minute)
+                        onDateTimeSet(cal.timeInMillis)
                     },
-                    calendar.get(Calendar.HOUR_OF_DAY),
-                    calendar.get(Calendar.MINUTE),
-                    true
-                )
-                timePickerDialog.show()
+                    cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true
+                ).show()
             },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        )
-        datePickerDialog.show()
+            cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)
+        ).show()
     }
 
-    // Collect navigation event
     LaunchedEffect(Unit) {
-        viewModel.navigateBack.collect {
-            if (it) onNavigateBack()
-        }
+        viewModel.navigateBack.collect { if (it) onNavigateBack() }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tambah Surat Masuk", fontSize = 18.sp) },
+                title = {
+                    Column {
+                        Text(screenTitle, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            if (isSuratKeluar) "ADC Dashboard" else "Staff Umum Dashboard",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Kembali"
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -95,172 +97,180 @@ fun AddLetterScreen(
                 )
             )
         }
-    ) { paddingValues ->
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-
-            // ... (All FormTextField, FormDateField, and FormDropdown composables remain the same)
-
-            Text(
-                text = "Detail Surat",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-
-            FormTextField(
-                label = "Judul Surat",
-                value = viewModel.judulSurat,
-                onValueChange = { viewModel.judulSurat = it },
-                isError = viewModel.judulSurat.isBlank() && viewModel.errorMessage != null
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                FormTextField(
-                    label = "Pengirim",
-                    value = viewModel.pengirim,
-                    onValueChange = { viewModel.pengirim = it },
-                    isError = viewModel.pengirim.isBlank() && viewModel.errorMessage != null,
-                    modifier = Modifier.weight(1f)
-                )
-                FormTextField(
-                    label = "No. Agenda",
-                    value = viewModel.nomorAgenda,
-                    onValueChange = { viewModel.nomorAgenda = it },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            FormTextField(
-                label = "Nomor Surat",
-                value = viewModel.nomorSurat,
-                onValueChange = { viewModel.nomorSurat = it },
-                isError = viewModel.nomorSurat.isBlank() && viewModel.errorMessage != null
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                FormDateField(
-                    label = "Tanggal Surat",
-                    value = viewModel.tanggalSurat.ifBlank { "Pilih Tanggal & Waktu" },
-                    onClick = {
-                        showDateTimePicker { millis ->
-                            viewModel.tanggalSurat = viewModel.formatMillisToDateTimeString(millis)
-                        }
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-
-                FormDateField(
-                    label = "Tanggal Masuk",
-                    value = viewModel.tanggalMasuk.ifBlank { "Pilih Tanggal & Waktu" },
-                    onClick = {
-                        showDateTimePicker { millis ->
-                            viewModel.tanggalMasuk = viewModel.formatMillisToDateTimeString(millis)
-                        }
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            FormDropdown(
-                label = "Sifat Surat (Prioritas)",
-                options = viewModel.prioritasOptions,
-                selectedOption = viewModel.prioritas,
-                onOptionSelected = { viewModel.prioritas = it }
-            )
-
-            FormTextField(
-                label = "Isi / Ringkasan Surat",
-                value = viewModel.isiSurat,
-                onValueChange = { viewModel.isiSurat = it },
-                maxLines = 3
-            )
-
-            FormTextField(
-                label = "Kesimpulan (Opsional)",
-                value = viewModel.kesimpulan,
-                onValueChange = { viewModel.kesimpulan = it },
-                maxLines = 2
-            )
-
-
-            Text(
-                text = "Lampiran",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-
-            UploadFileSection(
-                fileName = viewModel.fileName ?: "Belum ada file dipilih",
-                onSelectFile = {
-                    filePickerLauncher.launch("*/*")
-                }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            viewModel.errorMessage?.let {
-                Text(
-                    it,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            SectionHeader(title = "Data Utama")
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                shape = RoundedCornerShape(12.dp),
             ) {
-                OutlinedButton(
-                    onClick = { viewModel.createLetter(isDraft = true) },
-                    enabled = !viewModel.isLoading,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        "Simpan Draft",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.secondary
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        FormTextField(
+                            label = "No. Agenda",
+                            value = viewModel.nomorAgenda,
+                            onValueChange = { viewModel.nomorAgenda = it },
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.Tag
+                        )
+                        FormTextField(
+                            label = "No. Surat",
+                            value = viewModel.nomorSurat,
+                            onValueChange = { viewModel.nomorSurat = it },
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.Tag,
+                            isError = viewModel.nomorSurat.isBlank() && viewModel.errorMessage != null
+                        )
+                    }
+
+                    FormDropdown(
+                        label = "Sifat Surat",
+                        options = viewModel.prioritasOptions,
+                        selectedOption = viewModel.prioritas,
+                        onOptionSelected = { viewModel.prioritas = it }
                     )
                 }
-                Button(
-                    onClick = { viewModel.createLetter(isDraft = false) },
-                    enabled = !viewModel.isLoading,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    )
+            }
+
+            SectionHeader(title = "Detil Pengiriman")
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    if (viewModel.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onSecondary,
-                            strokeWidth = 2.dp
+                    FormTextField(
+                        label = partyLabel,
+                        value = viewModel.pengirim,
+                        onValueChange = { viewModel.pengirim = it },
+                        icon = Icons.Default.Person,
+                        isError = viewModel.pengirim.isBlank() && viewModel.errorMessage != null
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+
+                        FormDateField(
+                            label = "Tgl. Surat",
+                            value = viewModel.tanggalSurat.ifBlank { "Pilih..." },
+                            onClick = { showDateTimePicker { ms -> viewModel.tanggalSurat = viewModel.formatMillisToDateTimeString(ms) } },
+                            modifier = if (!isSuratKeluar) Modifier.weight(1f) else Modifier.fillMaxWidth()
                         )
-                    } else {
-                        Text("Buat Surat Masuk", fontSize = 16.sp)
+
+                        if (!isSuratKeluar) {
+                            FormDateField(
+                                label = "Tgl. Diterima",
+                                value = viewModel.tanggalMasuk.ifBlank { "Pilih..." },
+                                onClick = { showDateTimePicker { ms -> viewModel.tanggalMasuk = viewModel.formatMillisToDateTimeString(ms) } },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
             }
+
+            SectionHeader(title = "Isi Surat")
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    FormTextField(
+                        label = "Judul / Perihal",
+                        value = viewModel.judulSurat,
+                        onValueChange = { viewModel.judulSurat = it },
+                        icon = Icons.Default.Description,
+                        isError = viewModel.judulSurat.isBlank() && viewModel.errorMessage != null
+                    )
+                    FormTextField(
+                        label = "Ringkasan Isi",
+                        value = viewModel.isiSurat,
+                        onValueChange = { viewModel.isiSurat = it },
+                        maxLines = 4,
+                        singleLine = false
+                    )
+                    FormTextField(
+                        label = "Kesimpulan (Opsional)",
+                        value = viewModel.kesimpulan,
+                        onValueChange = { viewModel.kesimpulan = it },
+                        maxLines = 2,
+                        singleLine = false
+                    )
+                }
+            }
+
+            SectionHeader(title = "Lampiran")
+            UploadFileSection(
+                fileName = viewModel.fileName,
+                onSelectFile = { filePickerLauncher.launch("*/*") }
+            )
+
+            viewModel.errorMessage?.let {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(
+                    onClick = { viewModel.createLetter(isDraft = true) },
+                    enabled = !viewModel.isLoading,
+                    modifier = Modifier.weight(1f).height(50.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Simpan Draft")
+                }
+
+                Button(
+                    onClick = { viewModel.createLetter(isDraft = false) },
+                    enabled = !viewModel.isLoading,
+                    modifier = Modifier.weight(1f).height(50.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    if (viewModel.isLoading) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(20.dp))
+                    } else {
+                        Text(submitButtonText, textAlign = androidx.compose.ui.text.style.TextAlign.Center, fontSize = 13.sp, lineHeight = 14.sp)
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
-// --- (Private composables: FormTextField, FormDateField, FormDropdown, UploadFileSection) ---
-// ... (These are all unchanged from your last version) ...
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(start = 4.dp)
+    )
+}
 
 @Composable
 private fun FormTextField(
@@ -269,18 +279,60 @@ private fun FormTextField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     maxLines: Int = 1,
-    isError: Boolean = false
+    singleLine: Boolean = true,
+    isError: Boolean = false,
+    icon: ImageVector? = null
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label, fontSize = 12.sp) },
+        label = { Text(label, style = MaterialTheme.typography.bodySmall) },
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         maxLines = maxLines,
+        singleLine = singleLine,
         isError = isError,
-        textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp)
+        leadingIcon = if (icon != null) {
+            { Icon(icon, null, tint = MaterialTheme.colorScheme.outline) }
+        } else null,
+        textStyle = MaterialTheme.typography.bodyMedium,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+        )
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FormDropdown(
+    label: String,
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+        OutlinedTextField(
+            value = selectedOption.replaceFirstChar(Char::titlecase),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label, style = MaterialTheme.typography.bodySmall) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            leadingIcon = { Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.outline) },
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            textStyle = MaterialTheme.typography.bodyMedium
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.replaceFirstChar(Char::titlecase)) },
+                    onClick = { onOptionSelected(option); expanded = false }
+                )
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -291,118 +343,59 @@ private fun FormDateField(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-    ) {
+    Box(modifier = modifier.clickable { onClick() }) {
         OutlinedTextField(
             value = value,
             onValueChange = {},
-            label = { Text(label, fontSize = 12.sp) },
+            label = { Text(label, style = MaterialTheme.typography.bodySmall) },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            trailingIcon = {
-                Icon(
-                    imageVector = Icons.Default.CalendarMonth,
-                    contentDescription = "Pilih tanggal & waktu"
-                )
-            },
-            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
+            shape = RoundedCornerShape(8.dp),
             readOnly = true,
             enabled = false,
+            leadingIcon = { Icon(Icons.Default.CalendarToday, null) },
+            textStyle = MaterialTheme.typography.bodyMedium,
             colors = OutlinedTextFieldDefaults.colors(
                 disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledBorderColor = MaterialTheme.colorScheme.outlineVariant,
                 disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledSupportingTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                disabledLeadingIconColor = MaterialTheme.colorScheme.primary
             )
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun FormDropdown(
-    label: String,
-    options: List<String>,
-    selectedOption: String,
-    onOptionSelected: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier.fillMaxWidth()
-    ) {
-        OutlinedTextField(
-            value = selectedOption.replaceFirstChar(Char::titlecase),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label, fontSize = 12.sp) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp)
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option.replaceFirstChar(Char::titlecase), fontSize = 14.sp) },
-                    onClick = {
-                        onOptionSelected(option)
-                        expanded = false
-                    }
-                )
-            }
-        }
     }
 }
 
 @Composable
 private fun UploadFileSection(
-    fileName: String,
+    fileName: String?,
     onSelectFile: () -> Unit
 ) {
-    OutlinedButton(
+    Card(
         onClick = onSelectFile,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = Modifier.fillMaxWidth().height(56.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Icon(
-                imageVector = Icons.Default.AttachFile,
-                contentDescription = "Attach File",
-                tint = MaterialTheme.colorScheme.secondary
-            )
-            Text(
-                text = fileName,
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false) // Allow text to shrink
-            )
-            Text(
-                "Pilih File",
-                style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp),
-                color = MaterialTheme.colorScheme.secondary,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Default.AttachFile, null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text("Upload Dokumen Surat", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = fileName ?: "Belum ada file dipilih (PDF/Img)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (fileName != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            Text("PILIH", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
         }
     }
 }

@@ -24,6 +24,9 @@ credentials = "1.5.0"
 ui = "1.9.4"
 firebaseCrashlyticsBuildtools = "3.0.6"
 material3 = "1.4.0"
+foundation = "1.9.4"
+uiUnit = "1.9.4"
+uiUnitVersion = "1.9.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -62,6 +65,9 @@ androidx-credentials = { group = "androidx.credentials", name = "credentials", v
 androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
 firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
+androidx-compose-ui-unit = { group = "androidx.compose.ui", name = "ui-unit", version.ref = "uiUnit" }
+androidx-ui-unit = { group = "androidx.compose.ui", name = "ui-unit", version.ref = "uiUnitVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

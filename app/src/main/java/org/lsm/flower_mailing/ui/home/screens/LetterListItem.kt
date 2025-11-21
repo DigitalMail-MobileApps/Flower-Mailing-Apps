@@ -1,5 +1,6 @@
 package org.lsm.flower_mailing.ui.home.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,55 +45,67 @@ fun LetterListItem(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxWidth()
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
                 Text(
                     text = letter.judulSurat,
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
                     fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Dari: ${letter.pengirim}",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                    text = formatTime(letter.tanggalMasuk),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = if (letter.jenisSurat.equals("keluar", true)) "Tujuan: ${letter.pengirim}" else "Dari: ${letter.pengirim}",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = "No: ${letter.nomorSurat}",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                    color = MaterialTheme.colorScheme.outline
                 )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TypeBadge(type = letter.jenisSurat)
-                    StatusBadge(status = letter.status)
-                }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = formatTime(letter.tanggalMasuk),
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Medium
-            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TypeBadge(type = letter.jenisSurat)
+
+                if (!letter.prioritas.isNullOrBlank()) {
+                    SifatBadge(sifat = letter.prioritas)
+                }
+
+                StatusBadge(status = letter.status)
+            }
         }
     }
 }
@@ -105,39 +118,53 @@ fun TypeBadge(type: String) {
         else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor)
-    ) {
-        Text(
-            text = type.uppercase(),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-            color = textColor,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
+    Badge(text = type.uppercase(), backgroundColor = backgroundColor, textColor = textColor)
+}
+
+@Composable
+fun SifatBadge(sifat: String) {
+    val (backgroundColor, textColor) = when (sifat.lowercase()) {
+        "penting" -> Color(0xFFFFEBEE) to Color(0xFFC62828)
+        "segera" -> Color(0xFFFFF3E0) to Color(0xFFEF6C00)
+        "biasa" -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
+        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
+
+    Badge(
+        text = sifat.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
+        backgroundColor = backgroundColor,
+        textColor = textColor
+    )
 }
 
 @Composable
 fun StatusBadge(status: String) {
     val (backgroundColor, textColor) = when (status) {
         "draft" -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-        "perlu_verifikasi" -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-        "belum_disposisi" -> Color(0xFFFFF8E1) to Color(0xFFFFA000)
-        "sudah_disposisi" -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
+        "perlu_verifikasi", "perlu_revisi" -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        "belum_disposisi", "perlu_persetujuan" -> Color(0xFFFFF8E1) to Color(0xFFFFA000)
+        "sudah_disposisi", "disetujui", "terkirim" -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
         else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
 
+    Badge(
+        text = status.replace('_', ' ').replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
+        backgroundColor = backgroundColor,
+        textColor = textColor
+    )
+}
+
+@Composable
+fun Badge(text: String, backgroundColor: Color, textColor: Color) {
     Card(
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(6.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor)
     ) {
         Text(
-            text = status.replace('_', ' ').replaceFirstChar(Char::titlecase),
+            text = text,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
             color = textColor,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
     }
@@ -169,12 +196,24 @@ fun CenteredMessage(icon: ImageVector, message: String) {
 }
 
 fun formatTime(timestamp: String): String {
+    if (timestamp.isBlank()) return ""
+
     return try {
-        val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+        var parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
         parser.timeZone = TimeZone.getTimeZone("UTC")
-        val date = parser.parse(timestamp) ?: return ""
-        val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
-        formatter.format(date)
+        var date = parser.parse(timestamp)
+
+        if (date == null) {
+            parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+            parser.timeZone = TimeZone.getTimeZone("UTC")
+            date = parser.parse(timestamp)
+        }
+        if (date != null) {
+            val formatter = SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault())
+            formatter.format(date)
+        } else {
+            ""
+        }
     } catch (e: Exception) {
         ""
     }

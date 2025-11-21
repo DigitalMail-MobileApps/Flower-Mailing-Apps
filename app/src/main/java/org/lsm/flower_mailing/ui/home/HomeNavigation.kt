@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Drafts
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Outbox
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -21,6 +22,7 @@ import org.lsm.flower_mailing.ui.home.screens.DirekturDashboardScreen
 import org.lsm.flower_mailing.ui.home.screens.DraftScreen
 import org.lsm.flower_mailing.ui.home.screens.HistoryScreen
 import org.lsm.flower_mailing.ui.home.screens.SettingsScreen
+import org.lsm.flower_mailing.ui.home.screens.SuratKeluarScreen
 import org.lsm.flower_mailing.ui.home.screens.SuratMasukScreen
 import org.lsm.flower_mailing.ui.home.screens.UmumDashboardScreen
 
@@ -35,6 +37,7 @@ sealed class HomeRoute(
     object History : HomeRoute("history", "History", Icons.Default.History)
     object DirekturDashboard : HomeRoute("direktur_dash", "Dashboard", Icons.Default.Home)
     object Settings : HomeRoute("settings", "Settings", Icons.Default.Settings)
+    object SuratKeluar : HomeRoute("surat_keluar", "Surat Keluar", Icons.Default.Outbox)
     object Notification : HomeRoute("notification", "Notification", Icons.Default.Settings)
 }
 
@@ -64,7 +67,14 @@ fun HomeNavHost(
         }
 
         composable(HomeRoute.Home.route) {
-            UmumDashboardScreen(homeViewModel = viewModel, onNavigateToAddLetter = onNavigateToAddLetter,)
+            UmumDashboardScreen(
+                viewModel = viewModel,
+                onNavigateToAddLetter = onNavigateToAddLetter,
+                onNavigateToSuratMasuk = { navController.navigate(HomeRoute.SuratMasuk.route) },
+                onNavigateToDraft = { navController.navigate(HomeRoute.Draft.route) },
+                onNavigateToHistory = { navController.navigate(HomeRoute.History.route)},
+                onNavigateToSuratKeluar = {navController.navigate(HomeRoute.SuratKeluar.route)}
+            )
         }
         composable(HomeRoute.SuratMasuk.route) {
             SuratMasukScreen(viewModel = viewModel, onNavigateToLetterDetail = onNavigateToLetterDetail)
@@ -76,9 +86,22 @@ fun HomeNavHost(
             HistoryScreen(viewModel = viewModel, onNavigateToLetterDetail = onNavigateToLetterDetail)
         }
         composable(HomeRoute.DirekturDashboard.route) {
-            DirekturDashboardScreen()
+            DirekturDashboardScreen(
+                viewModel = viewModel,
+                onNavigateToSuratMasuk = { navController.navigate(HomeRoute.SuratMasuk.route) },
+                onNavigateToSuratKeluar = { navController.navigate(HomeRoute.SuratKeluar.route) },
+                onNavigateToHistory = { navController.navigate(HomeRoute.History.route) }
+            )
         }
         composable(HomeRoute.Settings.route) {
-            SettingsScreen(homeViewModel = viewModel)        }
+            SettingsScreen(homeViewModel = viewModel)
+        }
+
+        composable(HomeRoute.SuratKeluar.route) {
+            SuratKeluarScreen(
+                viewModel = viewModel,
+                onNavigateToDetail = onNavigateToLetterDetail
+            )
+        }
     }
 }

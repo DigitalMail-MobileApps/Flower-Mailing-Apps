@@ -8,7 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Outbox
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -24,29 +24,26 @@ import org.lsm.flower_mailing.ui.home.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun HistoryScreen(
+fun SuratKeluarScreen(
     viewModel: HomeViewModel,
-    onNavigateToLetterDetail: (Int) -> Unit
+    onNavigateToDetail: (Int) -> Unit
 ) {
-    val letters by viewModel.historyList.collectAsState()
+    val letters by viewModel.suratKeluarList.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
 
     val filteredLetters = remember(searchQuery, letters) {
-        if (searchQuery.isBlank()) {
-            letters
-        } else {
-            letters.filter { letter ->
-                letter.judulSurat.contains(searchQuery, ignoreCase = true) ||
-                        letter.pengirim.contains(searchQuery, ignoreCase = true) ||
-                        letter.nomorSurat.contains(searchQuery, ignoreCase = true)
-            }
+        if (searchQuery.isBlank()) letters
+        else letters.filter {
+            it.judulSurat.contains(searchQuery, ignoreCase = true) ||
+                    it.pengirim.contains(searchQuery, ignoreCase = true) ||
+                    it.nomorSurat.contains(searchQuery, ignoreCase = true)
         }
     }
 
     LaunchedEffect(Unit) {
-        viewModel.fetchHistoryLetters()
+        viewModel.fetchOutboxLetter()
     }
 
     Column(
@@ -59,7 +56,7 @@ fun HistoryScreen(
 
         Column {
             Text(
-                text = "Riwayat Surat",
+                text = "Surat Keluar",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 24.sp
@@ -67,7 +64,7 @@ fun HistoryScreen(
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
-                text = "Arsip surat yang sudah selesai diproses",
+                text = "Daftar surat keluar yang sedang berjalan",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -81,7 +78,7 @@ fun HistoryScreen(
             modifier = Modifier.fillMaxWidth(),
             placeholder = {
                 Text(
-                    text = "Cari riwayat...",
+                    text = "Cari judul, tujuan...",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
@@ -108,7 +105,7 @@ fun HistoryScreen(
 
         PullToRefreshBox(
             isRefreshing = isLoading,
-            onRefresh = { viewModel.fetchHistoryLetters() },
+            onRefresh = { viewModel.fetchOutboxLetter() },
             modifier = Modifier.fillMaxSize()
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -119,9 +116,9 @@ fun HistoryScreen(
                             message = "Error: $errorMessage"
                         )
                     } else {
-                        val msg = if (searchQuery.isNotBlank()) "Tidak ada hasil pencarian." else "Belum ada riwayat surat."
+                        val msg = if (searchQuery.isNotBlank()) "Tidak ada hasil pencarian." else "Tidak ada surat keluar aktif."
                         CenteredMessage(
-                            icon = Icons.Default.History,
+                            icon = Icons.Default.Outbox,
                             message = msg
                         )
                     }
@@ -133,11 +130,11 @@ fun HistoryScreen(
                     ) {
                         items(
                             items = filteredLetters,
-                            key = { "${it.jenisSurat}_${it.id}" }
+                            key = { it.id }
                         ) { letter ->
                             LetterListItem(
                                 letter = letter,
-                                onClick = { onNavigateToLetterDetail(letter.id) },
+                                onClick = { onNavigateToDetail(letter.id) },
                                 modifier = Modifier.animateItem()
                             )
                         }

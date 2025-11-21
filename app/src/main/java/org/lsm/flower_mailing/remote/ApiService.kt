@@ -1,5 +1,6 @@
 package org.lsm.flower_mailing.remote
 
+import com.google.android.datatransport.Priority
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import org.lsm.flower_mailing.data.auth.ForgotPasswordRequest
@@ -36,7 +37,7 @@ interface ApiService {
     suspend fun createLetter(@Part("data") data: RequestBody, @Part file_surat: MultipartBody.Part?): CreateLetterResponse
 
     @GET("letters")
-    suspend fun getLetters(@Query("jenis_surat") jenisSurat: String, @Query("status") status: String): LetterListResponse
+    suspend fun getLetters(@Query("jenis_surat") jenisSurat: String, @Query("sifat") status: String): LetterListResponse
 
     @GET("letters/{id}")
     suspend fun getLetterById(@Path("id") letterId: String): LetterDetailResponse

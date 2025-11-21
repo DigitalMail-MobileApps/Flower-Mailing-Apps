@@ -31,12 +31,18 @@ data class LetterUiState(
     val buttons: List<LetterButtonType> = emptyList(),
     val errorMessage: String? = null
 )
-
 enum class LetterButtonType {
+    // Flow surat masuk
     SAVE_DRAFT,
     SUBMIT_TO_ADC,
     VERIFY_AND_FORWARD,
-    SUBMIT_DISPOSITION
+    SUBMIT_DISPOSITION,
+
+    // Flow surat keluar
+    AJUKAN_PERSETUJUAN,
+    APPROVE_LETTER,
+    REJECT_REVISION,
+    FINALIZE_SEND
 }
 
 class LetterDetailViewModel(
@@ -107,7 +113,9 @@ class LetterDetailViewModel(
         bidangTujuan = letter.bidangTujuan ?: ""
 
         val status = letter.status
-        tanggalDisposisi = if (status == "belum_disposisi")
+        val isActionNeeded = status == "perlu_verifikasi" || status == "belum_disposisi" || status == "perlu_persetujuan"
+
+        tanggalDisposisi = if (isActionNeeded)
             formatMillisToDateTimeString(System.currentTimeMillis())
         else
             formatTimestampToDateTime(letter.tanggalDisposisi)
@@ -115,14 +123,75 @@ class LetterDetailViewModel(
 
     private fun calculateUiState(role: String?, letter: Letter) {
         val status = letter.status
+        val type = letter.jenisSurat
+        if (type == "keluar") {
+            calculateUiStateSuratKeluar(role, status, letter)
+        } else {
+            calculateUiStateSuratMasuk(role, status, letter)
+        }
+    }
 
+    private fun calculateUiStateSuratKeluar(role: String?, status: String, letter: Letter) {
+        val newState = when {
+            role.equals("adc", ignoreCase = true) -> when (status) {
+                "draft" -> LetterUiState(
+                    isLoading = false,
+                    isLetterInfoEditable = true,
+                    downloadUrl = letter.filePath,
+                    buttons = listOf(LetterButtonType.SAVE_DRAFT, LetterButtonType.AJUKAN_PERSETUJUAN)
+                )
+                "perlu_revisi" -> LetterUiState(
+                    isLoading = false,
+                    isLetterInfoEditable = true,
+                    isDispositionSectionVisible = false,
+                    isDispositionInfoEditable = false,
+                    downloadUrl = letter.filePath,
+                    buttons = listOf(LetterButtonType.SAVE_DRAFT, LetterButtonType.AJUKAN_PERSETUJUAN)
+                )
+                "disetujui" -> LetterUiState(
+                    isLoading = false,
+                    isLetterInfoEditable = false,
+                    isDispositionSectionVisible = false,
+                    isDispositionInfoEditable = false,
+                    downloadUrl = letter.filePath,
+                    buttons = listOf(LetterButtonType.FINALIZE_SEND)
+                )
+                else -> LetterUiState(
+                    isLoading = false,
+                    isLetterInfoEditable = false,
+                    downloadUrl = letter.filePath,
+                    buttons = emptyList()
+                )
+            }
+            role.equals("direktur", ignoreCase = true) -> when (status) {
+                "perlu_persetujuan" -> LetterUiState(
+                    isLoading = false,
+                    isLetterInfoEditable = false,
+                    isDispositionSectionVisible = true,
+                    isDispositionInfoEditable = true,
+                    downloadUrl = letter.filePath,
+                    buttons = listOf(LetterButtonType.APPROVE_LETTER, LetterButtonType.REJECT_REVISION)
+                )
+                else -> LetterUiState(
+                    isLoading = false,
+                    isLetterInfoEditable = false,
+                    isDispositionSectionVisible = true,
+                    isDispositionInfoEditable = false,
+                    downloadUrl = letter.filePath,
+                    buttons = emptyList()
+                )
+            }
+            else -> LetterUiState(isLoading = false)
+        }
+        _uiState.value = newState
+    }
+
+    private fun calculateUiStateSuratMasuk(role: String?, status: String, letter: Letter) {
         val newState = when {
             role.equals("bagian_umum", ignoreCase = true) -> when (status) {
                 "draft" -> LetterUiState(
                     isLoading = false,
                     isLetterInfoEditable = true,
-                    isDispositionSectionVisible = false,
-                    isDispositionInfoEditable = false,
                     downloadUrl = letter.filePath,
                     buttons = listOf(LetterButtonType.SAVE_DRAFT, LetterButtonType.SUBMIT_TO_ADC)
                 )
@@ -138,9 +207,7 @@ class LetterDetailViewModel(
             role.equals("adc", ignoreCase = true) -> when (status) {
                 "perlu_verifikasi" -> LetterUiState(
                     isLoading = false,
-                    isLetterInfoEditable = false,
-                    isDispositionSectionVisible = false,
-                    isDispositionInfoEditable = false,
+                    isLetterInfoEditable = true,
                     downloadUrl = letter.filePath,
                     buttons = listOf(LetterButtonType.VERIFY_AND_FORWARD)
                 )
@@ -171,84 +238,84 @@ class LetterDetailViewModel(
                     buttons = emptyList()
                 )
             }
-            else -> LetterUiState(isLoading = false, errorMessage = "Unknown user role: $role")
+            else -> LetterUiState(isLoading = false, errorMessage = "Unknown user role")
         }
         _uiState.value = newState
     }
 
     fun onSaveDraft() {
-        submitDraftOrAdc(isDraft = true)
+        submitUpdate(UpdateLetterRequest(
+            judulSurat = judulSurat, pengirim = pengirim, nomorSurat = nomorSurat,
+            nomorAgenda = nomorAgenda, prioritas = prioritas,
+            tanggalSurat = toUtcTimestamp(tanggalSurat),
+            isiSurat = isiSurat, kesimpulan = kesimpulan,
+            status = "draft"
+        ))
     }
 
     fun onSubmitToAdc() {
-        submitDraftOrAdc(isDraft = false)
+        submitUpdate(UpdateLetterRequest(
+            judulSurat = judulSurat, pengirim = pengirim, nomorSurat = nomorSurat,
+            nomorAgenda = nomorAgenda, prioritas = prioritas,
+            tanggalSurat = toUtcTimestamp(tanggalSurat), tanggalMasuk = toUtcTimestamp(tanggalMasuk),
+            isiSurat = isiSurat, kesimpulan = kesimpulan,
+            status = "perlu_verifikasi"
+        ))
     }
-
     fun onVerifyAndForward() {
-        submitVerification()
+        submitUpdate(UpdateLetterRequest(status = "belum_disposisi"))
     }
-
     fun onSubmitDisposition() {
-        submitDisposition()
+        submitUpdate(UpdateLetterRequest(
+            disposisi = disposisi, bidangTujuan = bidangTujuan,
+            tanggalDisposisi = toUtcTimestamp(tanggalDisposisi),
+            status = "sudah_disposisi"
+        ))
     }
 
-    private fun submitDraftOrAdc(isDraft: Boolean) {
+    fun onAjukanPersetujuan() {
+        submitUpdate(UpdateLetterRequest(
+            judulSurat = judulSurat, pengirim = pengirim, nomorSurat = nomorSurat,
+            nomorAgenda = nomorAgenda, prioritas = prioritas,
+            tanggalSurat = toUtcTimestamp(tanggalSurat),
+            isiSurat = isiSurat, kesimpulan = kesimpulan,
+            status = "perlu_persetujuan"
+        ))
+    }
+
+    fun onApproveLetter() {
+        submitUpdate(UpdateLetterRequest(
+            disposisi = disposisi,
+            tanggalDisposisi = toUtcTimestamp(tanggalDisposisi),
+            status = "disetujui"
+        ))
+    }
+
+    fun onRejectRevision() {
+        submitUpdate(UpdateLetterRequest(
+            disposisi = disposisi, // Director adds revision notes here
+            tanggalDisposisi = toUtcTimestamp(tanggalDisposisi),
+            status = "perlu_revisi"
+        ))
+    }
+
+    fun onFinalizeSend() {
+        submitUpdate(UpdateLetterRequest(status = "terkirim"))
+    }
+
+    private fun submitUpdate(request: UpdateLetterRequest) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-
-            val request = UpdateLetterRequest(
-                judulSurat = judulSurat,
-                pengirim = pengirim,
-                nomorSurat = nomorSurat,
-                nomorAgenda = nomorAgenda,
-                prioritas = prioritas,
-                tanggalSurat = toUtcTimestamp(tanggalSurat),
-                tanggalMasuk = toUtcTimestamp(tanggalMasuk),
-                isiSurat = isiSurat,
-                kesimpulan = kesimpulan,
-                status = if (isDraft) "draft" else "perlu_verifikasi"
-            )
-            submitUpdate(request)
-        }
-    }
-
-    private fun submitVerification() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-
-            val request = UpdateLetterRequest(
-                status = "belum_disposisi"
-            )
-
-            submitUpdate(request)
-        }
-    }
-
-    private fun submitDisposition() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-
-            val request = UpdateLetterRequest(
-                disposisi = disposisi,
-                bidangTujuan = bidangTujuan,
-                tanggalDisposisi = toUtcTimestamp(tanggalDisposisi),
-                status = "sudah_disposisi"
-            )
-
-            submitUpdate(request)
-        }
-    }
-
-    private suspend fun submitUpdate(request: UpdateLetterRequest) {
-        try {
-            val response = api.updateLetter(letterId, request)
-            if (response.status == "success") {
-                _navigateBack.emit(true)
-            } else {
-                _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = response.message)
+            try {
+                val response = api.updateLetter(letterId, request)
+                if (response.status == "success") {
+                    _navigateBack.emit(true)
+                } else {
+                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = response.message)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = e.message)
             }
-        } catch (e: Exception) {
-            _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = e.message)
         }
     }
 
@@ -269,9 +336,7 @@ class LetterDetailViewModel(
                 val localSdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
                 localSdf.timeZone = TimeZone.getDefault()
                 localSdf.format(date)
-            } catch (e2: Exception) {
-                timestamp.take(10)
-            }
+            } catch (e2: Exception) { timestamp.take(10) }
         }
     }
     fun formatMillisToDateTimeString(millis: Long): String {

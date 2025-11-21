@@ -11,15 +11,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,14 +46,13 @@ fun LetterDetailScreen(
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        viewModel.navigateBack.collect {
-            if (it) onNavigateBack()
-        }
+        viewModel.navigateBack.collect { if (it) onNavigateBack() }
     }
 
-    val context = LocalContext.current
+    // --- Date Picker Logic ---
     fun showDateTimePicker(
         initialDateString: String,
         onDateTimeSet: (Long) -> Unit
@@ -55,34 +64,40 @@ fun LetterDetailScreen(
             calendar.time = localSdf.parse(initialDateString) ?: Date()
         } catch (e: Exception) { /* Use current time */ }
 
-        val datePickerDialog = DatePickerDialog(
+        DatePickerDialog(
             context,
-            { _: DatePicker, year: Int, month: Int, day: Int ->
+            { _, year, month, day ->
                 calendar.set(year, month, day)
-                val timePickerDialog = TimePickerDialog(
+                TimePickerDialog(
                     context,
-                    { _, hour: Int, minute: Int ->
+                    { _, hour, minute ->
                         calendar.set(Calendar.HOUR_OF_DAY, hour)
                         calendar.set(Calendar.MINUTE, minute)
                         onDateTimeSet(calendar.timeInMillis)
                     },
-                    calendar.get(Calendar.HOUR_OF_DAY),
-                    calendar.get(Calendar.MINUTE),
-                    true
-                )
-                timePickerDialog.show()
+                    calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true
+                ).show()
             },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        )
-        datePickerDialog.show()
+            calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Detail Surat", fontSize = 18.sp) },
+                title = {
+                    Column {
+                        Text("Detail Surat", style = MaterialTheme.typography.titleMedium)
+                        // Subtitle showing status roughly (optional)
+                        if (!uiState.isLoading) {
+                            Text(
+                                "Lihat & Proses",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali")
@@ -98,335 +113,469 @@ fun LetterDetailScreen(
     ) { paddingValues ->
         Box(modifier = Modifier
             .fillMaxSize()
-            .padding(paddingValues)) {
-
+            .padding(paddingValues)
+        ) {
             if (uiState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (uiState.errorMessage != null) {
-                Text(
-                    text = "Error: ${uiState.errorMessage}",
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center).padding(20.dp)
-                )
+                Column(
+                    modifier = Modifier.align(Alignment.Center).padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Terjadi Kesalahan",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = uiState.errorMessage ?: "Unknown error",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             } else {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 20.dp, vertical = 16.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
 
-                    Text(
-                        "Informasi Surat",
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
-                        fontWeight = FontWeight.Bold
-                    )
+                    SectionHeader(title = "Data Utama")
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                FormTextField(
+                                    label = "No. Agenda",
+                                    value = viewModel.nomorAgenda,
+                                    onValueChange = { viewModel.nomorAgenda = it },
+                                    enabled = uiState.isLetterInfoEditable,
+                                    modifier = Modifier.weight(1f),
+                                    icon = Icons.Default.Tag
+                                )
+                                FormTextField(
+                                    label = "Nomor Surat",
+                                    value = viewModel.nomorSurat,
+                                    onValueChange = { viewModel.nomorSurat = it },
+                                    enabled = uiState.isLetterInfoEditable,
+                                    modifier = Modifier.weight(1f),
+                                    icon = Icons.Default.Tag
+                                )
+                            }
 
-                    FormTextField(
-                        label = "Judul Surat",
-                        value = viewModel.judulSurat,
-                        onValueChange = { viewModel.judulSurat = it },
-                        enabled = uiState.isLetterInfoEditable
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        FormTextField(
-                            label = "Pengirim",
-                            value = viewModel.pengirim,
-                            onValueChange = { viewModel.pengirim = it },
-                            enabled = uiState.isLetterInfoEditable,
-                            modifier = Modifier.weight(1f)
-                        )
-                        FormTextField(
-                            label = "No. Agenda",
-                            value = viewModel.nomorAgenda,
-                            onValueChange = { viewModel.nomorAgenda = it },
-                            enabled = uiState.isLetterInfoEditable,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    FormTextField(
-                        label = "Nomor Surat",
-                        value = viewModel.nomorSurat,
-                        onValueChange = { viewModel.nomorSurat = it },
-                        enabled = uiState.isLetterInfoEditable
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        FormDateField(
-                            label = "Tanggal Surat",
-                            value = viewModel.tanggalSurat,
-                            onClick = {
-                                showDateTimePicker(viewModel.tanggalSurat) { millis ->
-                                    viewModel.tanggalSurat = viewModel.formatMillisToDateTimeString(millis)
-                                }
-                            },
-                            enabled = uiState.isLetterInfoEditable,
-                            modifier = Modifier.weight(1f)
-                        )
-                        FormDateField(
-                            label = "Tanggal Masuk",
-                            value = viewModel.tanggalMasuk,
-                            onClick = {
-                                showDateTimePicker(viewModel.tanggalMasuk) { millis ->
-                                    viewModel.tanggalMasuk = viewModel.formatMillisToDateTimeString(millis)
-                                }
-                            },
-                            enabled = uiState.isLetterInfoEditable,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    FormDropdown(
-                        label = "Sifat Surat (Prioritas)",
-                        options = viewModel.prioritasOptions,
-                        selectedOption = viewModel.prioritas,
-                        onOptionSelected = { viewModel.prioritas = it },
-                        enabled = uiState.isLetterInfoEditable
-                    )
-                    FormTextField(
-                        label = "Isi / Ringkasan Surat",
-                        value = viewModel.isiSurat,
-                        onValueChange = { viewModel.isiSurat = it },
-                        enabled = uiState.isLetterInfoEditable,
-                        maxLines = 3
-                    )
-                    FormTextField(
-                        label = "Kesimpulan (Opsional)",
-                        value = viewModel.kesimpulan,
-                        onValueChange = { viewModel.kesimpulan = it },
-                        enabled = uiState.isLetterInfoEditable,
-                        maxLines = 2
-                    )
-
-                    uiState.downloadUrl?.let { url ->
-                        if (url.isNotBlank()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "Lampiran",
-                                style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
-                                fontWeight = FontWeight.Bold
+                            FormDropdown(
+                                label = "Sifat Surat",
+                                options = viewModel.prioritasOptions,
+                                selectedOption = viewModel.prioritas,
+                                onOptionSelected = { viewModel.prioritas = it },
+                                enabled = uiState.isLetterInfoEditable
                             )
-                            DownloadFileSection(url = url)
                         }
+                    }
+
+                    SectionHeader(title = "Detil Pengiriman")
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            FormTextField(
+                                label = "Pengirim / Tujuan",
+                                value = viewModel.pengirim,
+                                onValueChange = { viewModel.pengirim = it },
+                                enabled = uiState.isLetterInfoEditable,
+                                icon = Icons.Default.Person
+                            )
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                FormDateField(
+                                    label = "Tgl. Surat",
+                                    value = viewModel.tanggalSurat,
+                                    onClick = {
+                                        showDateTimePicker(viewModel.tanggalSurat) { millis ->
+                                            viewModel.tanggalSurat = viewModel.formatMillisToDateTimeString(millis)
+                                        }
+                                    },
+                                    enabled = uiState.isLetterInfoEditable,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                FormDateField(
+                                    label = "Tgl. Diterima",
+                                    value = viewModel.tanggalMasuk,
+                                    onClick = {
+                                        showDateTimePicker(viewModel.tanggalMasuk) { millis ->
+                                            viewModel.tanggalMasuk = viewModel.formatMillisToDateTimeString(millis)
+                                        }
+                                    },
+                                    enabled = uiState.isLetterInfoEditable,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+
+                    SectionHeader(title = "Isi Surat")
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            FormTextField(
+                                label = "Judul / Perihal",
+                                value = viewModel.judulSurat,
+                                onValueChange = { viewModel.judulSurat = it },
+                                enabled = uiState.isLetterInfoEditable,
+                                icon = Icons.Default.Description
+                            )
+                            FormTextField(
+                                label = "Ringkasan Isi",
+                                value = viewModel.isiSurat,
+                                onValueChange = { viewModel.isiSurat = it },
+                                enabled = uiState.isLetterInfoEditable,
+                                maxLines = 4,
+                                singleLine = false
+                            )
+                            FormTextField(
+                                label = "Kesimpulan (Opsional)",
+                                value = viewModel.kesimpulan,
+                                onValueChange = { viewModel.kesimpulan = it },
+                                enabled = uiState.isLetterInfoEditable,
+                                maxLines = 2,
+                                singleLine = false
+                            )
+                        }
+                    }
+
+                    if (!uiState.downloadUrl.isNullOrBlank()) {
+                        SectionHeader(title = "Lampiran")
+                        DownloadFileSection(url = uiState.downloadUrl!!)
                     }
 
                     if (uiState.isDispositionSectionVisible) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Informasi Disposisi",
-                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
-                            fontWeight = FontWeight.Bold
-                        )
-                        FormTextField(
-                            label = "Tujuan Disposisi (Bidang/Bagian)",
-                            value = viewModel.bidangTujuan,
-                            onValueChange = { viewModel.bidangTujuan = it },
-                            enabled = uiState.isDispositionInfoEditable
-                        )
-                        FormTextField(
-                            label = "Catatan Disposisi",
-                            value = viewModel.disposisi,
-                            onValueChange = { viewModel.disposisi = it },
-                            enabled = uiState.isDispositionInfoEditable,
-                            maxLines = 3
-                        )
-                        FormDateField(
-                            label = "Tanggal Disposisi",
-                            value = viewModel.tanggalDisposisi,
-                            onClick = {
-                                showDateTimePicker(viewModel.tanggalDisposisi) { millis ->
-                                    viewModel.tanggalDisposisi = viewModel.formatMillisToDateTimeString(millis)
-                                }
-                            },
-                            enabled = uiState.isDispositionInfoEditable
-                        )
+                        SectionHeader(title = "Catatan / Disposisi")
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.1f)),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                FormTextField(
+                                    label = "Tujuan Disposisi (Bidang)",
+                                    value = viewModel.bidangTujuan,
+                                    onValueChange = { viewModel.bidangTujuan = it },
+                                    enabled = uiState.isDispositionInfoEditable
+                                )
+                                FormTextField(
+                                    label = "Catatan / Instruksi",
+                                    value = viewModel.disposisi,
+                                    onValueChange = { viewModel.disposisi = it },
+                                    enabled = uiState.isDispositionInfoEditable,
+                                    maxLines = 3,
+                                    singleLine = false
+                                )
+                                FormDateField(
+                                    label = "Tanggal Proses",
+                                    value = viewModel.tanggalDisposisi,
+                                    onClick = {
+                                        showDateTimePicker(viewModel.tanggalDisposisi) { millis ->
+                                            viewModel.tanggalDisposisi = viewModel.formatMillisToDateTimeString(millis)
+                                        }
+                                    },
+                                    enabled = uiState.isDispositionInfoEditable
+                                )
+                            }
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-                    uiState.buttons.forEach { buttonType ->
-                        when (buttonType) {
-                            LetterButtonType.SAVE_DRAFT -> {
-                                OutlinedButton(
-                                    onClick = { viewModel.onSaveDraft() },
-                                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
-                                ) {
-                                    Text("Simpan Draft", fontSize = 14.sp)
-                                }
-                            }
-                            LetterButtonType.SUBMIT_TO_ADC -> {
-                                Button(
-                                    onClick = { viewModel.onSubmitToAdc() },
-                                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                                ) {
-                                    Text("Teruskan ke ADC", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-                            LetterButtonType.VERIFY_AND_FORWARD -> {
-                                Button(
-                                    onClick = { viewModel.onVerifyAndForward() },
-                                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                                ) {
-                                    Text("Verifikasi & Teruskan ke Direktur", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-                            LetterButtonType.SUBMIT_DISPOSITION -> {
-                                Button(
-                                    onClick = { viewModel.onSubmitDisposition() },
-                                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                                ) {
-                                    Text("Submit Disposisi", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    if (uiState.buttons.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            uiState.buttons.forEach { buttonType ->
+                                when (buttonType) {
+                                    LetterButtonType.SAVE_DRAFT -> {
+                                        OutlinedActionButton("Simpan Perubahan (Draft)") { viewModel.onSaveDraft() }
+                                    }
+                                    LetterButtonType.SUBMIT_TO_ADC -> {
+                                        PrimaryActionButton("Simpan & Teruskan ke ADC") { viewModel.onSubmitToAdc() }
+                                    }
+                                    LetterButtonType.VERIFY_AND_FORWARD -> {
+                                        PrimaryActionButton("Verifikasi & Teruskan ke Direktur") { viewModel.onVerifyAndForward() }
+                                    }
+                                    LetterButtonType.SUBMIT_DISPOSITION -> {
+                                        PrimaryActionButton("Submit Disposisi (Selesai)") { viewModel.onSubmitDisposition() }
+                                    }
+
+                                    LetterButtonType.AJUKAN_PERSETUJUAN -> {
+                                        PrimaryActionButton("Ajukan Persetujuan") { viewModel.onAjukanPersetujuan() }
+                                    }
+                                    LetterButtonType.APPROVE_LETTER -> {
+                                        ActionButton(
+                                            text = "Setujui Surat",
+                                            color = Color(0xFF2E7D32), // Green
+                                            onClick = { viewModel.onApproveLetter() }
+                                        )
+                                    }
+                                    LetterButtonType.REJECT_REVISION -> {
+                                        ActionButton(
+                                            text = "Tolak & Minta Revisi",
+                                            color = MaterialTheme.colorScheme.error,
+                                            onClick = { viewModel.onRejectRevision() }
+                                        )
+                                    }
+                                    LetterButtonType.FINALIZE_SEND -> {
+                                        PrimaryActionButton("Kirim / Arsipkan (Selesai)") { viewModel.onFinalizeSend() }
+                                    }
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp),
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+    )
+}
+
+@Composable
+private fun PrimaryActionButton(text: String, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(50.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+    ) {
+        Text(text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun OutlinedActionButton(text: String, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(50.dp),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+    ) {
+        Text(text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun ActionButton(text: String, color: Color, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(50.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = color)
+    ) {
+        Text(text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
     }
 }
 
 @Composable
 private fun FormTextField(
-    label: String, value: String, onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier, maxLines: Int = 1, isError: Boolean = false, enabled: Boolean = true
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    maxLines: Int = 1,
+    singleLine: Boolean = true,
+    enabled: Boolean = true,
+    icon: ImageVector? = null
 ) {
+    val colors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = MaterialTheme.colorScheme.primary,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+        disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+        disabledLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+        disabledLeadingIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+    )
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label, fontSize = 12.sp) },
+        label = { Text(label, style = MaterialTheme.typography.bodySmall) },
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         maxLines = maxLines,
-        isError = isError,
+        singleLine = singleLine,
         enabled = enabled,
-        textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp)
+        leadingIcon = if (icon != null) {
+            { Icon(icon, null) }
+        } else null,
+        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+        colors = colors
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FormDateField(
-    label: String, value: String, onClick: () -> Unit,
-    modifier: Modifier = Modifier, enabled: Boolean = true
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick)
-    ) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = {},
-            label = { Text(label, fontSize = 12.sp) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            trailingIcon = { Icon(Icons.Default.CalendarMonth, "Pilih tanggal") },
-            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
-            readOnly = true,
-            enabled = false,
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = if (enabled) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                disabledLabelColor = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
-                disabledBorderColor = if (enabled) MaterialTheme.colorScheme.outline
-                else MaterialTheme.colorScheme.outline.copy(alpha = 0.38f),
-                disabledTrailingIconColor = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-            )
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 private fun FormDropdown(
-    label: String, options: List<String>, selectedOption: String, onOptionSelected: (String) -> Unit,
-    modifier: Modifier = Modifier, enabled: Boolean = true
+    label: String,
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit,
+    enabled: Boolean = true
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val isInteractive = enabled
 
     ExposedDropdownMenuBox(
-        expanded = if (enabled) expanded else false,
-        onExpandedChange = { if (enabled) expanded = !expanded },
-        modifier = modifier.fillMaxWidth()
+        expanded = if (isInteractive) expanded else false,
+        onExpandedChange = { if (isInteractive) expanded = !expanded }
     ) {
         OutlinedTextField(
             value = selectedOption.replaceFirstChar(Char::titlecase),
             onValueChange = {},
             readOnly = true,
-            label = { Text(label, fontSize = 12.sp) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
             enabled = false,
+            label = { Text(label, style = MaterialTheme.typography.bodySmall) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            leadingIcon = { Icon(Icons.Default.Info, null) },
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
             colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = if (enabled) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                disabledLabelColor = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
-                disabledBorderColor = if (enabled) MaterialTheme.colorScheme.outline
-                else MaterialTheme.colorScheme.outline.copy(alpha = 0.38f),
-                disabledTrailingIconColor = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledBorderColor = if (enabled) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                disabledLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
             )
         )
-        if (enabled) {
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
+        if (isInteractive) {
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
                     DropdownMenuItem(
                         text = { Text(option.replaceFirstChar(Char::titlecase), fontSize = 14.sp) },
-                        onClick = {
-                            onOptionSelected(option)
-                            expanded = false
-                        }
+                        onClick = { onOptionSelected(option); expanded = false }
                     )
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FormDateField(
+    label: String,
+    value: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    Box(modifier = modifier.clickable(enabled = enabled) { onClick() }) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            label = { Text(label, style = MaterialTheme.typography.bodySmall) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            readOnly = true,
+            enabled = false, // Disable focus
+            leadingIcon = { Icon(Icons.Default.CalendarToday, null) },
+            textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+            colors = OutlinedTextFieldDefaults.colors(
+                // Custom colors to make it look "enabled" but read-only, or "disabled" visually if not editable
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledBorderColor = if (enabled) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                disabledLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            )
+        )
     }
 }
 
 @Composable
 private fun DownloadFileSection(url: String) {
     val uriHandler = LocalUriHandler.current
-    OutlinedButton(
+
+    OutlinedCard(
         onClick = {
-            try { uriHandler.openUri(url) }
-            catch (e: Exception) { e.printStackTrace() }
+            try { uriHandler.openUri(url) } catch (e: Exception) { e.printStackTrace() }
         },
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = Modifier.fillMaxWidth().height(56.dp)
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Description,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Dokumen Lampiran",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Ketuk untuk melihat file",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             Icon(
-                imageVector = Icons.Default.CloudDownload,
-                contentDescription = "Download Lampiran",
-                tint = MaterialTheme.colorScheme.secondary
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                "Lihat/Unduh Lampiran",
-                style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp),
-                color = MaterialTheme.colorScheme.secondary,
-                fontWeight = FontWeight.SemiBold
+                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                contentDescription = "Buka File",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
             )
         }
     }

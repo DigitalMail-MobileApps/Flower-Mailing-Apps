@@ -35,6 +35,7 @@ fun HomeScreen(
             listOf(
                 HomeRoute.DirekturDashboard,
                 HomeRoute.SuratMasuk,
+                HomeRoute.SuratKeluar,
                 HomeRoute.History,
             ) to HomeRoute.DirekturDashboard.route
         }
@@ -42,6 +43,7 @@ fun HomeScreen(
             listOf(
                 HomeRoute.Home,
                 HomeRoute.SuratMasuk,
+                HomeRoute.SuratKeluar,
                 HomeRoute.Draft,
                 HomeRoute.History,
             ) to HomeRoute.Home.route

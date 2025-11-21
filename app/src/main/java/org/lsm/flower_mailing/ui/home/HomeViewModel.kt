@@ -31,7 +31,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val isLoggedOut: StateFlow<Boolean> = _isLoggedOut
     private val refreshTokenFlow = userPreferencesRepository.refreshTokenFlow
 
-    // Lists
     private val _inboxList = MutableStateFlow<List<Letter>>(emptyList())
     val inboxList: StateFlow<List<Letter>> = _inboxList.asStateFlow()
 
@@ -40,6 +39,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _historyList = MutableStateFlow<List<Letter>>(emptyList())
     val historyList: StateFlow<List<Letter>> = _historyList.asStateFlow()
+
+    private val _suratKeluarList = MutableStateFlow<List<Letter>>(emptyList())
+    val suratKeluarList: StateFlow<List<Letter>> = _suratKeluarList.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -69,7 +71,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-
             val role = userRole.first() ?: return@launch
             val statusToFetch = when {
                 role.equals("adc", ignoreCase = true) -> "perlu_verifikasi"
@@ -90,7 +91,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     status = statusToFetch
                 )
                 if (response.status == "success") {
-                    _inboxList.value = response.data.items.filter { it.status == statusToFetch }
+                    _inboxList.value = response.data.items
+                        .filter { it.status == statusToFetch }
+                        .distinctBy { it.id }
                 } else {
                     _errorMessage.value = response.message
                 }
@@ -107,8 +110,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
             _errorMessage.value = null
 
-            val role = userRole.first()
-            if (role != "bagian_umum") {
+            val role = userRole.first() ?: return@launch
+
+            val typeToFetch = when {
+                role.equals("bagian_umum", ignoreCase = true) -> "masuk"
+                role.equals("adc", ignoreCase = true) -> "keluar"
+                else -> null
+            }
+
+            if (typeToFetch == null) {
                 _draftList.value = emptyList()
                 _isLoading.value = false
                 return@launch
@@ -116,11 +126,54 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
             try {
                 val response = RetrofitClient.getInstance(getApplication()).getLetters(
-                    jenisSurat = "masuk",
+                    jenisSurat = typeToFetch,
                     status = "draft"
                 )
                 if (response.status == "success") {
-                    _draftList.value = response.data.items.filter { it.status == "draft" }
+                    _draftList.value = response.data.items
+                        .filter { it.jenisSurat == typeToFetch && it.status == "draft" }
+                        .distinctBy { it.id }
+                } else {
+                    _errorMessage.value = response.message
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun fetchOutboxLetter() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            val role = userRole.first() ?: return@launch
+
+            try {
+                val response = RetrofitClient.getInstance(getApplication()).getLetters(
+                    jenisSurat = "keluar",
+                    status = ""
+                )
+
+                if (response.status == "success") {
+                    val allLetters = response.data.items
+
+                    val filtered = when {
+                        role.equals("adc", ignoreCase = true) -> allLetters.filter {
+                            it.jenisSurat == "keluar" && (
+                                    it.status == "draft" ||
+                                            it.status == "perlu_revisi" ||
+                                            it.status == "disetujui"
+                                    )
+                        }
+                        role.equals("direktur", ignoreCase = true) -> allLetters.filter {
+                            it.jenisSurat == "keluar" &&
+                                    it.status == "perlu_persetujuan"
+                        }
+                        else -> emptyList()
+                    }
+                    _suratKeluarList.value = filtered.distinctBy { it.id }
                 } else {
                     _errorMessage.value = response.message
                 }
@@ -142,11 +195,24 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     jenisSurat = "masuk",
                     status = "sudah_disposisi"
                 )
-                if (response.status == "success") {
-                    _historyList.value = response.data.items.filter { it.status == "sudah_disposisi" }
-                } else {
-                    _errorMessage.value = response.message
-                }
+
+                val responseKeluar = RetrofitClient.getInstance(getApplication()).getLetters(
+                    jenisSurat = "keluar",
+                    status = "terkirim"
+                )
+
+                val listMasuk = if (response.status == "success") {
+                    response.data.items.filter { it.status == "sudah_disposisi" }
+                } else emptyList()
+
+                val listKeluar = if (responseKeluar.status == "success") {
+                    responseKeluar.data.items.filter { it.status == "terkirim" }
+                } else emptyList()
+
+                _historyList.value = (listMasuk + listKeluar)
+                    .distinctBy { "${it.jenisSurat}_${it.id}" }
+                    .sortedByDescending { it.id }
+
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {
