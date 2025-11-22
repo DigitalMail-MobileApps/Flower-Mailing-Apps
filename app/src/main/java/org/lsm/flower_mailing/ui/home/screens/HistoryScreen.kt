@@ -107,7 +107,7 @@ fun HistoryScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         PullToRefreshBox(
-            isRefreshing = isLoading,
+            isRefreshing = isLoading && letters.isNotEmpty(),
             onRefresh = { viewModel.fetchHistoryLetters() },
             modifier = Modifier.fillMaxSize()
         ) {

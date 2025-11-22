@@ -27,6 +27,7 @@ material3 = "1.4.0"
 foundation = "1.9.4"
 uiUnit = "1.9.4"
 uiUnitVersion = "1.9.5"
+uiTextVersion = "1.9.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -68,6 +69,7 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3",
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 androidx-compose-ui-unit = { group = "androidx.compose.ui", name = "ui-unit", version.ref = "uiUnit" }
 androidx-ui-unit = { group = "androidx.compose.ui", name = "ui-unit", version.ref = "uiUnitVersion" }
+androidx-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiTextVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

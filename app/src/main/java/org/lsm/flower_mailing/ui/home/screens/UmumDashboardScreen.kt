@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Description
@@ -297,7 +298,6 @@ fun MenuSection(
 
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
             shape = RoundedCornerShape(16.dp),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
@@ -313,7 +313,6 @@ fun MenuSection(
                     HorizontalDivider(
                         thickness = 0.5.dp,
                         color = MaterialTheme.colorScheme.outlineVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
                     MenuItem(
                         icon = Icons.Default.Description,
@@ -326,7 +325,6 @@ fun MenuSection(
                 HorizontalDivider(
                     thickness = 0.5.dp,
                     color = MaterialTheme.colorScheme.outlineVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
                 MenuItem(
                     icon = Icons.Default.History,
@@ -381,11 +379,6 @@ fun MenuItem(
             )
         }
 
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(16.dp)
-        )
+        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
     }
 }

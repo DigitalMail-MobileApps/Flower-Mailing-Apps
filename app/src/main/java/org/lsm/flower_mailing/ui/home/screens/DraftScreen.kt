@@ -104,7 +104,7 @@ fun DraftScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         PullToRefreshBox(
-            isRefreshing = isLoading,
+            isRefreshing = isLoading && letters.isNotEmpty(),
             onRefresh = { viewModel.fetchDraftLetters() },
             modifier = Modifier.fillMaxSize()
         ) {

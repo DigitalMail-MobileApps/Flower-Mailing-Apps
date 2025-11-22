@@ -13,6 +13,10 @@ import org.lsm.flower_mailing.data.letter.CreateLetterResponse
 import org.lsm.flower_mailing.data.letter.LetterDetailResponse
 import org.lsm.flower_mailing.data.letter.LetterListResponse
 import org.lsm.flower_mailing.data.letter.UpdateLetterRequest
+import org.lsm.flower_mailing.data.settings.ChangePasswordRequest
+import org.lsm.flower_mailing.data.settings.SettingsResponse
+import org.lsm.flower_mailing.data.settings.UpdateProfileRequest
+import org.lsm.flower_mailing.data.settings.UserProfile
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Multipart
@@ -44,4 +48,13 @@ interface ApiService {
 
     @PUT("letters/{id}")
     suspend fun updateLetter(@Path("id") letterId: String, @Body request: UpdateLetterRequest): LetterListResponse
+
+    @GET("settings/profile")
+    suspend fun getMyProfile(): SettingsResponse<UserProfile>
+
+    @PUT("settings/profile")
+    suspend fun updateMyProfile(@Body body: UpdateProfileRequest): SettingsResponse<UserProfile>
+
+    @PUT("settings/change-password")
+    suspend fun changePassword(@Body body: ChangePasswordRequest): SettingsResponse<Unit>
 }

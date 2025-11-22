@@ -104,7 +104,7 @@ fun SuratKeluarScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         PullToRefreshBox(
-            isRefreshing = isLoading,
+            isRefreshing = isLoading && letters.isNotEmpty(),
             onRefresh = { viewModel.fetchOutboxLetter() },
             modifier = Modifier.fillMaxSize()
         ) {

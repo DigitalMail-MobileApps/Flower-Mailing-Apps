@@ -7,7 +7,9 @@ import androidx.compose.material.icons.filled.Drafts
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Outbox
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -15,16 +17,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import org.lsm.flower_mailing.ui.home.screens.DirekturDashboardScreen
 import org.lsm.flower_mailing.ui.home.screens.DraftScreen
 import org.lsm.flower_mailing.ui.home.screens.HistoryScreen
-import org.lsm.flower_mailing.ui.home.screens.SettingsScreen
 import org.lsm.flower_mailing.ui.home.screens.SuratKeluarScreen
 import org.lsm.flower_mailing.ui.home.screens.SuratMasukScreen
 import org.lsm.flower_mailing.ui.home.screens.UmumDashboardScreen
+import org.lsm.flower_mailing.ui.settings.ChangePasswordScreen
+import org.lsm.flower_mailing.ui.settings.EditProfileScreen
+import org.lsm.flower_mailing.ui.settings.SettingsScreen
+import org.lsm.flower_mailing.ui.settings.SettingsViewModel
 
 sealed class HomeRoute(
     val route: String,
@@ -39,6 +45,8 @@ sealed class HomeRoute(
     object Settings : HomeRoute("settings", "Settings", Icons.Default.Settings)
     object SuratKeluar : HomeRoute("surat_keluar", "Surat Keluar", Icons.Default.Outbox)
     object Notification : HomeRoute("notification", "Notification", Icons.Default.Settings)
+    object EditProfile : HomeRoute("settings/edit_profile", "Edit Profil", Icons.Default.Person)
+    object ChangePassword : HomeRoute("settings/change_password", "Ganti Password", Icons.Default.Lock)
 }
 
 @Composable
@@ -47,7 +55,7 @@ fun HomeNavHost(
     startDestination: String,
     viewModel: HomeViewModel,
     onNavigateToAddLetter: () -> Unit,
-    onNavigateToLetterDetail: (Int) -> Unit
+    onNavigateToLetterDetail: (Int) -> Unit,
 ) {
     NavHost(
         navController = navController,
@@ -93,14 +101,37 @@ fun HomeNavHost(
                 onNavigateToHistory = { navController.navigate(HomeRoute.History.route) }
             )
         }
-        composable(HomeRoute.Settings.route) {
-            SettingsScreen(homeViewModel = viewModel)
-        }
 
         composable(HomeRoute.SuratKeluar.route) {
             SuratKeluarScreen(
                 viewModel = viewModel,
                 onNavigateToDetail = onNavigateToLetterDetail
+            )
+        }
+
+        composable(HomeRoute.Settings.route) {
+            val settingsViewModel: SettingsViewModel = viewModel()
+            SettingsScreen(
+                viewModel = settingsViewModel,
+                onNavigateToEditProfile = { navController.navigate(HomeRoute.EditProfile.route) },
+                onNavigateToChangePassword = { navController.navigate(HomeRoute.ChangePassword.route) },
+                onLoggedOut = {}
+            )
+        }
+
+        composable(HomeRoute.EditProfile.route) {
+            val settingsViewModel: SettingsViewModel = viewModel()
+            EditProfileScreen(
+                viewModel = settingsViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(HomeRoute.ChangePassword.route) {
+            val settingsViewModel: SettingsViewModel = viewModel()
+            ChangePasswordScreen(
+                viewModel = settingsViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

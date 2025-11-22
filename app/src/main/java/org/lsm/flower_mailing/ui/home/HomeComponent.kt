@@ -2,6 +2,7 @@ package org.lsm.flower_mailing.ui.home
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,9 +28,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 @Composable
 fun HomeTopBar(
     title: String,
+    userRole: String?,
     onSettingsClick: () -> Unit,
     onNotificationClick: () -> Unit,
-    userRole: String?
+    showBackButton: Boolean = false,
+    onBackClick: () -> Unit = {}
 ) {
     TopAppBar(
         title = {
@@ -50,23 +53,37 @@ fun HomeTopBar(
                 }
             }
         },
+        navigationIcon = {
+            if (showBackButton) {
+                IconButton(onClick = onBackClick) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Kembali",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+        },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primary,
             titleContentColor = MaterialTheme.colorScheme.onPrimary,
-            actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+            actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
         ),
         actions = {
-            IconButton(onClick = onNotificationClick) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notifikasi"
-                )
-            }
-            IconButton(onClick = onSettingsClick) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Pengaturan"
-                )
+            if (!showBackButton) {
+                IconButton(onClick = onNotificationClick) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notifikasi"
+                    )
+                }
+                IconButton(onClick = onSettingsClick) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Pengaturan"
+                    )
+                }
             }
         }
     )

@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -103,7 +104,7 @@ fun SuratMasukScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         PullToRefreshBox(
-            isRefreshing = isLoading,
+            isRefreshing = isLoading && letters.isNotEmpty(),
             onRefresh = { viewModel.fetchInboxLetters() },
             modifier = Modifier.fillMaxSize()
         ) {
@@ -139,6 +140,7 @@ fun SuratMasukScreen(
                         }
                     }
                 }
+
                 if (isLoading && letters.isEmpty()) {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
