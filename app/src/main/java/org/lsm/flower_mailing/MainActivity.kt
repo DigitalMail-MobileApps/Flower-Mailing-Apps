@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -62,10 +63,8 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(isLoggedIn) {
                     if (isLoggedIn == true) {
                         val letterIdString = intent?.getStringExtra("letterIdFromNotification")
-
                         if (letterIdString != null) {
                             val letterId = letterIdString.toIntOrNull()
-
                             if (letterId != null) {
                                 nav.navigate(Routes.letterDetail(letterId))
                                 intent.removeExtra("letterIdFromNotification")
@@ -77,7 +76,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
+                    CompositionLocalProvider(LocalOverscrollFactory provides null) {
                         AppNavHost(
                             nav = nav,
                             isLoggedIn = isLoggedIn,
@@ -133,7 +132,7 @@ private fun NavGraphBuilder.splashRoute(
     }
 }
 
-private fun NavGraphBuilder.loginRoute(
+fun NavGraphBuilder.loginRoute(
     nav: NavHostController,
     loginViewModel: LoginViewModel
 ) {
@@ -171,7 +170,10 @@ private fun NavGraphBuilder.homeRoute(
             onLoggedOut = {
                 loginViewModel.onLogout()
                 nav.navigate(Routes.Login) {
-                    popUpTo(nav.graph.findStartDestination().id) { inclusive = true }
+                    popUpTo(nav.graph.id) {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
                 }
             },
             onNavigateToAddLetter = {

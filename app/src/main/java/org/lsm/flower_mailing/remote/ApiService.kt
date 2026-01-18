@@ -1,6 +1,5 @@
 package org.lsm.flower_mailing.remote
 
-import com.google.android.datatransport.Priority
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import org.lsm.flower_mailing.data.auth.ForgotPasswordRequest
@@ -26,31 +25,48 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+/**
+ * Legacy monolithic API service.
+ *
+ * @deprecated Use the modular APIs in `org.lsm.flower_mailing.data.source.remote.api` instead.
+ * - [org.lsm.flower_mailing.data.source.remote.api.AuthApi]
+ * - [org.lsm.flower_mailing.data.source.remote.api.OutgoingLetterApi]
+ * - [org.lsm.flower_mailing.data.source.remote.api.IncomingLetterApi]
+ */
+@Deprecated(
+        "This interface is deprecated. Use the specific API interfaces provided by RetrofitClient."
+)
 interface ApiService {
-    @POST("auth/login")
-    suspend fun login(@Body request: LoginRequest): LoginResponse
+    @POST("auth/login") suspend fun login(@Body request: LoginRequest): LoginResponse
 
     @POST("auth/forgot-password")
     suspend fun forgotPassword(@Body request: ForgotPasswordRequest): ForgotPasswordResponse
 
-    @POST("auth/logout")
-    suspend fun logout(@Body request: LogoutRequest): LogoutResponse
+    @POST("auth/logout") suspend fun logout(@Body request: LogoutRequest): LogoutResponse
 
     @Multipart
     @POST("letters")
-    suspend fun createLetter(@Part("data") data: RequestBody, @Part file_surat: MultipartBody.Part?): CreateLetterResponse
+    suspend fun createLetter(
+            @Part("data") data: RequestBody,
+            @Part file_surat: MultipartBody.Part?
+    ): CreateLetterResponse
 
     @GET("letters")
-    suspend fun getLetters(@Query("jenis_surat") jenisSurat: String, @Query("sifat") status: String): LetterListResponse
+    suspend fun getLetters(
+            @Query("jenis_surat") jenisSurat: String,
+            @Query("sifat") status: String
+    ): LetterListResponse
 
     @GET("letters/{id}")
     suspend fun getLetterById(@Path("id") letterId: String): LetterDetailResponse
 
     @PUT("letters/{id}")
-    suspend fun updateLetter(@Path("id") letterId: String, @Body request: UpdateLetterRequest): LetterListResponse
+    suspend fun updateLetter(
+            @Path("id") letterId: String,
+            @Body request: UpdateLetterRequest
+    ): LetterListResponse
 
-    @GET("settings/profile")
-    suspend fun getMyProfile(): SettingsResponse<UserProfile>
+    @GET("settings/profile") suspend fun getMyProfile(): SettingsResponse<UserProfile>
 
     @PUT("settings/profile")
     suspend fun updateMyProfile(@Body body: UpdateProfileRequest): SettingsResponse<UserProfile>

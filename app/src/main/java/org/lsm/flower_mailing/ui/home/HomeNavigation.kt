@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -56,6 +57,7 @@ fun HomeNavHost(
     viewModel: HomeViewModel,
     onNavigateToAddLetter: () -> Unit,
     onNavigateToLetterDetail: (Int) -> Unit,
+    onLoggedOut: () -> Unit
 ) {
     NavHost(
         navController = navController,
@@ -115,7 +117,7 @@ fun HomeNavHost(
                 viewModel = settingsViewModel,
                 onNavigateToEditProfile = { navController.navigate(HomeRoute.EditProfile.route) },
                 onNavigateToChangePassword = { navController.navigate(HomeRoute.ChangePassword.route) },
-                onLoggedOut = {}
+                onLoggedOut = onLoggedOut
             )
         }
 

@@ -5,23 +5,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.lsm.flower_mailing.data.UserPreferencesRepository
-import org.lsm.flower_mailing.data.auth.ForgotPasswordRequest
 import org.lsm.flower_mailing.data.auth.LoginRequest
-import org.lsm.flower_mailing.notifications.TopicManager
+import org.lsm.flower_mailing.data.repository.AuthRepository
 import org.lsm.flower_mailing.remote.RetrofitClient
 
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
+
+    // Ideally injected via Hilt/Koin, but manual injection for now
+    private val authRepository =
+            AuthRepository(
+                    authApi = RetrofitClient.getAuthApi(application),
+                    preferences = UserPreferencesRepository(application)
+            )
+
     var email by mutableStateOf("")
     var password by mutableStateOf("")
     var loginError by mutableStateOf<String?>(null)
         private set
+
     private val _isLoggedIn = MutableStateFlow<Boolean?>(null)
     val isLoggedIn: StateFlow<Boolean?> = _isLoggedIn
 
@@ -31,58 +38,47 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     var isLoading by mutableStateOf(false)
         private set
 
-
-    private val userPreferencesRepository = UserPreferencesRepository(application)
-
     init {
         viewModelScope.launch {
-            val token = userPreferencesRepository.accessTokenFlow.first()
+            val token = authRepository.isLoggedIn.first()
             _isLoggedIn.value = (token != null)
         }
     }
+
     fun login() {
+        if (email.isBlank() || password.isBlank()) {
+            loginError = "Email dan password harus diisi"
+            return
+        }
+
         viewModelScope.launch {
             isLoading = true
+            loginError = null
 
-            try {
-                val response = RetrofitClient.getInstance(getApplication()).login(LoginRequest(email, password))
-                val token = response.data.accessToken
-                val refreshToken = response.data.refreshToken
-                val role = response.data.user.role
-                val user = response.data.user
-                val userName = "${user.firstName} ${user.lastName}"
-                val userEmail = user.email
+            val result = authRepository.login(LoginRequest(email, password))
 
-                userPreferencesRepository.saveLoginData(
-                    token, refreshToken, role, userName, userEmail
-                )
-
-                TopicManager.subscribeForRole(user.role)
-
-                _isLoggedIn.value = true
-                loginError = null
-
-            } catch (e: Exception) {
-                loginError = e.message ?: "Terjadi error saat prose masuk"
+            result.onSuccess { _isLoggedIn.value = true }.onFailure { e ->
+                loginError = e.message ?: "Terjadi kesalahan saat login"
                 _isLoggedIn.value = false
-            } finally {
-                isLoading = false
             }
+
+            isLoading = false
         }
     }
 
     fun forgotPassword(email: String) {
         viewModelScope.launch {
-            try {
-                val response = RetrofitClient.getInstance(getApplication()).forgotPassword(ForgotPasswordRequest(email))
-                forgotPasswordMessage = response.message
-            } catch (e: Exception) {
-                forgotPasswordMessage = e.message ?: "Terjadi error saat mereset password"
+            val result = authRepository.forgotPassword(email)
+            result.onSuccess { msg -> forgotPasswordMessage = msg }.onFailure { e ->
+                forgotPasswordMessage = e.message ?: "Gagal mereset password"
             }
         }
     }
 
     fun onLogout() {
-        _isLoggedIn.value = false
+        viewModelScope.launch {
+            authRepository.logout()
+            _isLoggedIn.value = false
+        }
     }
 }

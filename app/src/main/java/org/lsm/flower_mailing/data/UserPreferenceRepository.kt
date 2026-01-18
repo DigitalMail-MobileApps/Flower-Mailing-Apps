@@ -23,7 +23,13 @@ class UserPreferencesRepository(context: Context) {
         val USER_EMAIL = stringPreferencesKey("user_email")
     }
 
-    suspend fun saveLoginData(token: String, refreshToken: String, role: String, name: String, email: String) {
+    suspend fun saveLoginData(
+            token: String,
+            refreshToken: String,
+            role: String,
+            name: String,
+            email: String
+    ) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.ACCESS_TOKEN] = token
             preferences[PreferencesKeys.REFRESH_TOKEN] = refreshToken
@@ -33,34 +39,30 @@ class UserPreferencesRepository(context: Context) {
         }
     }
 
-    val userRoleFlow: Flow<String?> = dataStore.data
-        .map { preferences ->
-            preferences[PreferencesKeys.USER_ROLE]
+    suspend fun updateUserDetails(role: String, name: String, email: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USER_ROLE] = role
+            preferences[PreferencesKeys.USER_NAME] = name
+            preferences[PreferencesKeys.USER_EMAIL] = email
         }
+    }
 
-    val accessTokenFlow: Flow<String?> = dataStore.data
-        .map { preferences ->
-            preferences[PreferencesKeys.ACCESS_TOKEN]
-        }
+    val userRoleFlow: Flow<String?> =
+            dataStore.data.map { preferences -> preferences[PreferencesKeys.USER_ROLE] }
 
-    val refreshTokenFlow: Flow<String?> = dataStore.data
-        .map { preferences ->
-            preferences[PreferencesKeys.REFRESH_TOKEN]
-        }
+    val accessTokenFlow: Flow<String?> =
+            dataStore.data.map { preferences -> preferences[PreferencesKeys.ACCESS_TOKEN] }
 
-    val userNameFlow: Flow<String?> = dataStore.data
-        .map { preferences ->
-            preferences[PreferencesKeys.USER_NAME]
-        }
+    val refreshTokenFlow: Flow<String?> =
+            dataStore.data.map { preferences -> preferences[PreferencesKeys.REFRESH_TOKEN] }
 
-    val userEmailFlow: Flow<String?> = dataStore.data
-        .map { preferences ->
-            preferences[PreferencesKeys.USER_EMAIL]
-        }
+    val userNameFlow: Flow<String?> =
+            dataStore.data.map { preferences -> preferences[PreferencesKeys.USER_NAME] }
+
+    val userEmailFlow: Flow<String?> =
+            dataStore.data.map { preferences -> preferences[PreferencesKeys.USER_EMAIL] }
 
     suspend fun clearLoginData() {
-        dataStore.edit { preferences ->
-            preferences.clear()
-        }
+        dataStore.edit { preferences -> preferences.clear() }
     }
 }
