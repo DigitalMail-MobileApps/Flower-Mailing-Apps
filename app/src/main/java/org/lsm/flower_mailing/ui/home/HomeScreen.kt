@@ -35,65 +35,48 @@ fun HomeScreen(
 
     val (navItems, startDestination) =
             when {
+                // DIREKTUR: Sees incoming for disposition, outgoing for approval (NO history - no
+                // API access)
                 userRole.equals("direktur", ignoreCase = true) -> {
                     listOf(
                             HomeRoute.DirekturDashboard,
-                            HomeRoute.SuratMasuk, // Monitor Incoming
-                            HomeRoute.History,
+                            HomeRoute.SuratMasuk, // Disposition queue
+                            HomeRoute.SuratKeluar, // Approval queue
                     ) to HomeRoute.DirekturDashboard.route
                 }
-                userRole.equals("adc", ignoreCase = true) -> {
+                // STAF PROGRAM: Creates Surat Keluar (External scope only) - NO Surat Masuk
+                userRole.equals("staf_program", ignoreCase = true) -> {
                     listOf(
                             HomeRoute.Home,
-                            HomeRoute.SuratMasuk,
-                            HomeRoute.SuratKeluar, // ADC manages Outgoing drafts
+                            HomeRoute.SuratKeluar, // Their outgoing letters
                             HomeRoute.History,
                     ) to HomeRoute.Home.route
                 }
-                userRole.equals("bagian_umum", ignoreCase = true) -> {
+                // STAF LEMBAGA: Creates Surat Masuk + Surat Keluar (Internal scope)
+                userRole.equals("staf_lembaga", ignoreCase = true) -> {
                     listOf(
                             HomeRoute.Home,
-                            HomeRoute.SuratMasuk,
-                            HomeRoute.Draft,
+                            HomeRoute.SuratMasuk, // Register incoming
+                            HomeRoute.SuratKeluar, // Internal outgoing
                             HomeRoute.History,
                     ) to HomeRoute.Home.route
                 }
-                // Generic Staff (Program, Lembaga, etc.)
-                userRole?.startsWith("staf", ignoreCase = true) == true ||
-                        userRole?.startsWith("budi", ignoreCase = true) ==
-                                true || // Explicit check if names used as roles inadvertently
-                        userRole?.contains("program", ignoreCase = true) == true ||
-                        userRole?.contains("lembaga", ignoreCase = true) == true -> {
-                    listOf(
-                            HomeRoute.Home,
-                            HomeRoute.SuratMasuk, // Can register
-                            // HomeRoute.Draft, // Optional
-                            HomeRoute.SuratKeluar, // Can view My Letters
-                            HomeRoute.History,
-                    ) to HomeRoute.Home.route
-                }
-                // Managers (KPP, Pemas, PKL) -> Focus on Verification
+                // MANAGERS (KPP, Pemas, PKL): Verification dashboard (NO history - no API access)
                 userRole?.contains("manajer", ignoreCase = true) == true ||
                         userRole?.contains("manager", ignoreCase = true) == true -> {
                     listOf(
                             HomeRoute.Home, // Verification Dashboard
-                            // Managers might not register incoming letters or view generic history
-                            // depending on scope
-                            // But let's keep History if they need to check past verifications
-                            HomeRoute.History
+                            HomeRoute.SuratKeluar, // Letters to verify
                     ) to HomeRoute.Home.route
                 }
-                // Admin -> No specific dashboard yet, but must have valid start destination
-                userRole.equals("admin", ignoreCase = true) ||
-                        userRole.equals("administrasi", ignoreCase = true) -> {
-                    // Safe fallback to Home, even if empty menu
-                    emptyList<HomeRoute>() to HomeRoute.Home.route
+                // ADMIN: Settings/management only (no letter operations)
+                userRole.equals("admin", ignoreCase = true) -> {
+                    listOf(HomeRoute.Home, HomeRoute.Settings) to HomeRoute.Home.route
                 }
                 else -> {
-                    // Default fallback for unknown roles to avoid infinite loading
+                    // Default fallback for unknown roles
                     listOf(
                             HomeRoute.Home,
-                            HomeRoute.History,
                     ) to HomeRoute.Home.route
                 }
             }

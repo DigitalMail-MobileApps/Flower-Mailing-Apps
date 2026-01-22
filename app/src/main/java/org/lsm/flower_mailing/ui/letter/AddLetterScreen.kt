@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.util.Calendar
 import org.lsm.flower_mailing.data.model.response.VerifierDto
+import org.lsm.flower_mailing.ui.components.FilePreviewCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +41,7 @@ fun AddLetterScreen(viewModel: AddLetterViewModel = viewModel(), onNavigateBack:
         val screenTitle = if (isSuratKeluar) "Registrasi Surat Keluar" else "Registrasi Surat Masuk"
         val partyLabel = if (isSuratKeluar) "Tujuan / Penerima" else "Pengirim Surat"
         val submitButtonText =
-                if (isSuratKeluar) "Simpan & Ajukan Verifikasi" else "Simpan & Teruskan"
+                if (isSuratKeluar) "Simpan & Ajukan Verifikasi" else "Kirim ke Direktur"
         val filePickerLauncher =
                 rememberLauncherForActivityResult(
                         contract = ActivityResultContracts.GetContent()
@@ -83,8 +84,12 @@ fun AddLetterScreen(viewModel: AddLetterViewModel = viewModel(), onNavigateBack:
                                                         style = MaterialTheme.typography.titleMedium
                                                 )
                                                 Text(
-                                                        if (isSuratKeluar) "ADC Dashboard"
-                                                        else "Staff Umum Dashboard",
+                                                        text =
+                                                                viewModel
+                                                                        .userRole
+                                                                        ?.replace("_", " ")
+                                                                        ?.uppercase()
+                                                                        ?: "DASHBOARD",
                                                         style =
                                                                 MaterialTheme.typography.labelSmall
                                                                         .copy(fontSize = 10.sp),
@@ -132,6 +137,117 @@ fun AddLetterScreen(viewModel: AddLetterViewModel = viewModel(), onNavigateBack:
                                         modifier = Modifier.padding(16.dp),
                                         verticalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
+                                        // Toggle for Staf Lembaga (Can do Masuk & Keluar Internal)
+                                        if (viewModel.userRole?.equals(
+                                                        "staf_lembaga",
+                                                        ignoreCase = true
+                                                ) == true
+                                        ) {
+                                                SingleChoiceSegmentedButtonRow(
+                                                        modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                        SegmentedButton(
+                                                                selected = !isSuratKeluar,
+                                                                onClick = {
+                                                                        viewModel
+                                                                                .determinedJenisSurat =
+                                                                                "masuk"
+                                                                },
+                                                                shape =
+                                                                        RoundedCornerShape(
+                                                                                topStart = 8.dp,
+                                                                                bottomStart = 8.dp
+                                                                        ),
+                                                                label = { Text("Surat Masuk") }
+                                                        )
+                                                        SegmentedButton(
+                                                                selected = isSuratKeluar,
+                                                                shape =
+                                                                        RoundedCornerShape(
+                                                                                topEnd = 8.dp,
+                                                                                bottomEnd = 8.dp
+                                                                        ),
+                                                                label = { Text("Surat Keluar") },
+                                                                onClick = {
+                                                                        viewModel
+                                                                                .determinedJenisSurat =
+                                                                                "keluar"
+                                                                        // Staf Lembaga restricted
+                                                                        // to Internal for Outgoing
+                                                                        if (viewModel.userRole
+                                                                                        ?.equals(
+                                                                                                "staf_lembaga",
+                                                                                                ignoreCase =
+                                                                                                        true
+                                                                                        ) == true
+                                                                        ) {
+                                                                                viewModel
+                                                                                        .updateScope(
+                                                                                                "Internal"
+                                                                                        )
+                                                                        }
+                                                                }
+                                                        )
+                                                }
+                                        }
+
+                                        // Scope Selection REMOVED for Staf Lembaga ("remove it
+                                        // completely") - OLD INCORRECT ASSUMPTION
+                                        // CORRECT REQ: Start Masuk = Internal + Eksternal. Surat
+                                        // Keluar = Internal Only.
+
+                                        // Scope Selection for Staf Lembaga (Only for Surat Masuk)
+                                        // Surat Keluar is forced to Internal for Staf Lembaga
+                                        // (Hidden)
+                                        if (viewModel.userRole?.equals(
+                                                        "staf_lembaga",
+                                                        ignoreCase = true
+                                                ) == true && !isSuratKeluar
+                                        ) {
+                                                Text(
+                                                        text = "Lingkup Surat",
+                                                        style =
+                                                                MaterialTheme.typography
+                                                                        .labelMedium,
+                                                        modifier = Modifier.padding(top = 8.dp)
+                                                )
+                                                SingleChoiceSegmentedButtonRow(
+                                                        modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                        SegmentedButton(
+                                                                selected =
+                                                                        viewModel.scope ==
+                                                                                "Internal",
+                                                                onClick = {
+                                                                        viewModel.updateScope(
+                                                                                "Internal"
+                                                                        )
+                                                                },
+                                                                shape =
+                                                                        RoundedCornerShape(
+                                                                                topStart = 8.dp,
+                                                                                bottomStart = 8.dp
+                                                                        ),
+                                                                label = { Text("Internal") }
+                                                        )
+                                                        SegmentedButton(
+                                                                selected =
+                                                                        viewModel.scope ==
+                                                                                "Eksternal",
+                                                                onClick = {
+                                                                        viewModel.updateScope(
+                                                                                "Eksternal"
+                                                                        )
+                                                                },
+                                                                shape =
+                                                                        RoundedCornerShape(
+                                                                                topEnd = 8.dp,
+                                                                                bottomEnd = 8.dp
+                                                                        ),
+                                                                label = { Text("Eksternal") }
+                                                        )
+                                                }
+                                        }
                                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                                 FormTextField(
                                                         label = "No. Agenda",
@@ -164,12 +280,23 @@ fun AddLetterScreen(viewModel: AddLetterViewModel = viewModel(), onNavigateBack:
                                                 onOptionSelected = { viewModel.prioritas = it }
                                         )
 
-                                        if (isSuratKeluar) {
+                                        // Only show Verifier Dropdown for Eksternal scope
+                                        // Staf Lembaga (Internal) gets auto-assigned manajer_pkl by
+                                        // backend
+                                        if (isSuratKeluar && viewModel.scope == "Eksternal") {
                                                 VerifierDropdown(
                                                         verifiers = viewModel.verifiers,
                                                         selectedId = viewModel.assignedVerifierId,
-                                                        onVerifierSelected = {
-                                                                viewModel.assignedVerifierId = it
+                                                        onVerifierSelected = { id ->
+                                                                android.util.Log.d(
+                                                                        "AddLetterScreen",
+                                                                        "Verifier selected: $id"
+                                                                )
+                                                                viewModel.assignedVerifierId = id
+                                                                android.util.Log.d(
+                                                                        "AddLetterScreen",
+                                                                        "ViewModel assignedVerifierId now: ${viewModel.assignedVerifierId}"
+                                                                )
                                                         }
                                                 )
                                         }
@@ -288,10 +415,19 @@ fun AddLetterScreen(viewModel: AddLetterViewModel = viewModel(), onNavigateBack:
                         }
 
                         SectionHeader(title = "Lampiran")
-                        UploadFileSection(
-                                fileName = viewModel.fileName,
-                                onSelectFile = { filePickerLauncher.launch("*/*") }
-                        )
+                        if (viewModel.fileName != null) {
+                                FilePreviewCard(
+                                        fileName = viewModel.fileName!!,
+                                        fileType = "File",
+                                        fileUrl = viewModel.fileUri,
+                                        onRemove = { viewModel.onClearFile() }
+                                )
+                        } else {
+                                UploadFileSection(
+                                        fileName = viewModel.fileName,
+                                        onSelectFile = { filePickerLauncher.launch("*/*") }
+                                )
+                        }
 
                         viewModel.errorMessage?.let {
                                 Card(
@@ -536,9 +672,10 @@ private fun VerifierDropdown(
         onVerifierSelected: (Int) -> Unit
 ) {
         var expanded by remember { mutableStateOf(false) }
-        val selectedName = verifiers.find { it.id == selectedId }?.name ?: ""
+        val selectedVerifier = verifiers.find { it.id == selectedId }
+        val selectedName = selectedVerifier?.username ?: "Pilih Verifikator..."
 
-        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                 OutlinedTextField(
                         value = selectedName,
                         onValueChange = {},
@@ -559,11 +696,12 @@ private fun VerifierDropdown(
                                         tint = MaterialTheme.colorScheme.outline
                                 )
                         },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        modifier =
+                                Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
+                                        .fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
                         textStyle = MaterialTheme.typography.bodyMedium,
-                        placeholder = { Text("Pilih Verifikator...") },
-                        isError = selectedId == null && !expanded
+                        isError = selectedId == null
                 )
                 ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         if (verifiers.isEmpty()) {
@@ -578,7 +716,7 @@ private fun VerifierDropdown(
                                                 text = {
                                                         Column {
                                                                 Text(
-                                                                        verifier.name,
+                                                                        verifier.username,
                                                                         style =
                                                                                 MaterialTheme
                                                                                         .typography

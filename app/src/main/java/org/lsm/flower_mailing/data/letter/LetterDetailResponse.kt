@@ -3,12 +3,7 @@ package org.lsm.flower_mailing.data.letter
 import com.google.gson.annotations.SerializedName
 
 data class LetterDetailResponse(
-    @SerializedName("status")
-    val status: String,
-
-    @SerializedName("message")
-    val message: String,
-
-    @SerializedName("data")
-    val data: Letter
+        @SerializedName("success") val success: Boolean,
+        @SerializedName("message") val message: String,
+        @SerializedName("data") val data: Letter
 )

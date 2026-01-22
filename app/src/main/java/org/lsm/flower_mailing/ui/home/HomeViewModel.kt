@@ -60,6 +60,25 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val isLoggedOut: StateFlow<Boolean> = _isLoggedOut
     private val refreshTokenFlow = userPreferencesRepository.refreshTokenFlow
 
+    init {
+        viewModelScope.launch {
+            userRole.collect { role ->
+                if (!role.isNullOrBlank()) {
+                    fetchAllData()
+                }
+            }
+        }
+        // Also ensure data is refreshed when creating viewmodel if role is already there
+        // (Handled by collect above)
+    }
+
+    fun fetchAllData() {
+        fetchInboxLetters()
+        fetchOutboxLetter()
+        fetchDraftLetters()
+        fetchHistoryLetters()
+    }
+
     private val _inboxList = MutableStateFlow<List<Letter>>(emptyList())
     val inboxList: StateFlow<List<Letter>> = _inboxList.asStateFlow()
 
@@ -101,42 +120,40 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val combinedList = mutableListOf<Letter>()
 
-                // 1. Director Logic
+                // 1. Director Logic - Only Surat Masuk (Need Disposition)
                 if (role == "direktur") {
-                    // Need Disposition (Masuk)
                     val incomingResult = incomingRepo.getLettersNeedingDisposition()
                     if (incomingResult.isSuccess) {
                         combinedList.addAll(
                                 incomingResult.getOrDefault(emptyList()).map { it.toLetter() }
                         )
                     }
-                    // Need Approval (Keluar)
-                    val outgoingResult = outgoingRepo.getLettersNeedingApproval()
-                    if (outgoingResult.isSuccess) {
-                        combinedList.addAll(
-                                outgoingResult.getOrDefault(emptyList()).map { it.toLetter() }
-                        )
-                    }
+                    // NOTE: Surat Keluar (Need Approval) is fetched separately in
+                    // fetchOutboxLetter()
                 }
-                // 2. Manager Logic
+                // 2. Manager Logic - Don't populate inboxList, they use suratKeluarList only
                 else if (role.contains("manajer") || role.contains("manager")) {
-                    val outgoingResult = outgoingRepo.getLettersNeedingVerification()
-                    if (outgoingResult.isSuccess) {
+                    // Verification letters are fetched in fetchOutboxLetter()
+                    // Manager doesn't have access to Surat Masuk tab
+                }
+                // 3. Staf Lembaga - Fetches their registered Surat Masuk
+                else if (role == "staf_lembaga") {
+                    val incomingResult = incomingRepo.getMyLetters()
+                    if (incomingResult.isSuccess) {
                         combinedList.addAll(
-                                outgoingResult.getOrDefault(emptyList()).map { it.toLetter() }
+                                incomingResult
+                                        .getOrDefault(emptyList())
+                                        .filter {
+                                            it.status != "diarsipkan" &&
+                                                    it.status != "sudah_disposisi"
+                                        } // Exclude archived & disposed
+                                        .map { it.toLetter() }
                         )
                     }
                 }
-                // 3. Fallback / Staff / ADC
+                // 4. Staf Program and others - No Surat Masuk access
                 else {
-                    // For Staff/ADC, we might revert to old logic or show 'My Letters'
-                    // if they are considered "Inbox" (e.g. need revision).
-                    // Gap analysis didn't specify "Inbox" for Staff, usually they check status of
-                    // their letters.
-                    // We'll keep it empty or minimal for now unless specific requirement arises.
-                    // Old code: "adc" -> "perlu_verifikasi" (Which implies ADC monitors
-                    // verification status?)
-                    // If so, we can use getMyLetters() and filter locally.
+                    // staf_program only creates Surat Keluar, no inbox
                 }
 
                 _inboxList.value = combinedList.distinctBy { "${it.jenisSurat}_${it.id}" }
@@ -157,8 +174,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
             val typeToFetch =
                     when {
-                        role.equals("bagian_umum", ignoreCase = true) -> "masuk"
-                        role.equals("adc", ignoreCase = true) -> "keluar"
+                        role.equals("staf_lembaga", ignoreCase = true) -> "masuk"
+                        role.equals("staf_program", ignoreCase = true) -> "keluar"
                         else -> null
                     }
 
@@ -169,16 +186,41 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             try {
-                val response =
-                        RetrofitClient.getInstance(getApplication())
-                                .getLetters(jenisSurat = typeToFetch, status = "draft")
-                if (response.status == "success") {
-                    _draftList.value =
-                            response.data.items
-                                    .filter { it.jenisSurat == typeToFetch && it.status == "draft" }
-                                    .distinctBy { it.id }
-                } else {
-                    _errorMessage.value = response.message
+                // New Logic using Repositories
+                if (typeToFetch == "keluar") {
+                    val result = outgoingRepo.getMyLetters()
+                    if (result.isSuccess) {
+                        val allLetters = result.getOrDefault(emptyList())
+                        _draftList.value =
+                                allLetters
+                                        .filter { it.status == "draft" }
+                                        .map { it.toLetter() }
+                                        .distinctBy { it.id }
+                    } else {
+                        _errorMessage.value = result.exceptionOrNull()?.message
+                    }
+                } else if (typeToFetch == "masuk") {
+                    // For incoming letters, "draft" concept might be "belum_disposisi" or strictly
+                    // unused.
+                    // Assuming for "bagian_umum" (General Affairs), "draft" might mean unregistered
+                    // fully?
+                    // Or maybe they just want to see what they just registered.
+                    // For now, let's look at "belum_disposisi" as a 'pending' state for them?
+                    // Or if there is a true "draft" status for incoming.
+                    // Based on previous code: status="draft".
+                    // Let's assume we filter local 'masuk' letters for 'draft' if that status
+                    // exists.
+                    val result = incomingRepo.getMyLetters()
+                    if (result.isSuccess) {
+                        val allLetters = result.getOrDefault(emptyList())
+                        _draftList.value =
+                                allLetters
+                                        .filter { it.status == "draft" } // Pending clarification
+                                        .map { it.toLetter() }
+                                        .distinctBy { it.id }
+                    } else {
+                        _errorMessage.value = result.exceptionOrNull()?.message
+                    }
                 }
             } catch (e: Exception) {
                 _errorMessage.value = e.message
@@ -197,15 +239,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val role = rawRole.trim().lowercase()
 
             try {
-                // 1. ADC Logic (Drafts, Revisions, Approved)
-                if (role == "adc") {
-                    val result = outgoingRepo.getLetters()
+                // 1. Staf Program Logic (All their letters: Drafts, Pending, Revisions, Approved)
+                if (role == "staf_program") {
+                    val result = outgoingRepo.getMyLetters()
                     if (result.isSuccess) {
                         val filtered =
                                 result.getOrDefault(emptyList()).filter {
                                     it.status == "draft" ||
+                                            it.status == "perlu_verifikasi" ||
+                                            it.status == "perlu_persetujuan" ||
                                             it.status == "perlu_revisi" ||
                                             it.status == "disetujui"
+                                    // Removed "diarsipkan" as requested
                                 }
                         // Map to Letter
                         _suratKeluarList.value = filtered.map { it.toLetter() }.distinctBy { it.id }
@@ -233,30 +278,28 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         _suratKeluarList.value = emptyList()
                     }
                 }
-                // 4. Generic Staff (My Letters)
-                else {
-                    // Try getMyLetters first (per Docs)
+                // 4. Staf Lembaga Logic (Internal Surat Keluar - same as staf_program)
+                else if (role == "staf_lembaga") {
                     val result = outgoingRepo.getMyLetters()
                     if (result.isSuccess) {
-                        val mapped = result.getOrDefault(emptyList()).map { it.toLetter() }
+                        val filtered =
+                                result.getOrDefault(emptyList()).filter {
+                                    it.status == "draft" ||
+                                            it.status == "perlu_verifikasi" ||
+                                            it.status == "perlu_persetujuan" ||
+                                            it.status == "perlu_revisi" ||
+                                            it.status == "disetujui"
+                                    // Removed "diarsipkan" as requested
+                                }
+                        _suratKeluarList.value = filtered.map { it.toLetter() }.distinctBy { it.id }
                     } else {
-                        // If 404, maybe fall back to Generic List?
-                        // But user specifically said 404 for Generic Endpoint too.
-                        // Let's assume getLetters() (GET letters/keluar) is the correct one if
-                        // myLetters fails or as primary.
-                        // User said "check the api from API_REFERENCE.md" where getMyLetters is
-                        // listed.
-                        // But reported 404.
-                        // Im gonna try getLetters() as the collection resource as a
-                        // backup/alternative.
-                        val fallback = outgoingRepo.getLetters()
-                        if (fallback.isSuccess) {
-                            val mapped = fallback.getOrDefault(emptyList()).map { it.toLetter() }
-                            _suratKeluarList.value = mapped
-                        } else {
-                            _errorMessage.value = result.exceptionOrNull()?.message
-                        }
+                        _errorMessage.value = result.exceptionOrNull()?.message
                     }
+                }
+                // 5. Generic Staff / Admin (No outbox permissions typically)
+                else {
+                    // Admin and unknown roles - empty or no-op
+                    _suratKeluarList.value = emptyList()
                 }
             } catch (e: Exception) {
                 _errorMessage.value = e.message
@@ -271,35 +314,63 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
             _errorMessage.value = null
 
+            val rawRole = userRole.first() ?: return@launch
+            val role = rawRole.trim().lowercase()
+
             try {
-                // Use new specific endpoints instead of legacy generic fetch
-                val incomingResult = incomingRepo.getLetters()
-                val outgoingResult = outgoingRepo.getLetters()
+                // Direktur and Managers don't have "my letters" - they approve/verify
+                // They don't have a history endpoint, so show empty or archived letters they
+                // processed
+                if (role.contains("manajer") || role.contains("manager") || role == "admin") {
+                    // For now, show empty history for these roles
+                    // In the future, could add an endpoint for "letters I've approved/verified"
+                    _historyList.value = emptyList()
+                } else if (role == "direktur") {
+                    val result = incomingRepo.getMyDispositions()
+                    if (result.isSuccess) {
+                        _historyList.value =
+                                result.getOrDefault(emptyList())
+                                        .map { it.toLetter() }
+                                        .sortedByDescending { it.id }
+                    }
+                } else {
+                    // Staff roles (staf_program, staf_lembaga) - fetch their created letters
+                    val combinedList = mutableListOf<Letter>()
 
-                val listMasuk =
+                    // Only staf_lembaga fetches incoming letters
+                    if (role == "staf_lembaga") {
+                        val incomingResult = incomingRepo.getMyLetters()
                         if (incomingResult.isSuccess) {
-                            incomingResult
-                                    .getOrDefault(emptyList())
-                                    .filter { it.status == "sudah_disposisi" }
-                                    .map { it.toLetter() }
-                        } else emptyList()
+                            combinedList.addAll(
+                                    incomingResult
+                                            .getOrDefault(emptyList())
+                                            .filter {
+                                                it.status == "sudah_disposisi" ||
+                                                        it.status == "diarsipkan"
+                                            }
+                                            .map { it.toLetter() }
+                            )
+                        }
+                    }
 
-                val listKeluar =
-                        if (outgoingResult.isSuccess) {
-                            outgoingResult
-                                    .getOrDefault(emptyList())
-                                    .filter {
-                                        it.status == "terkirim" ||
-                                                it.status == "diarsipkan" ||
-                                                it.status == "disetujui"
-                                    } // Adjust 'terkirim' assumption
-                                    .map { it.toLetter() }
-                        } else emptyList()
+                    // Both staff types fetch outgoing letters
+                    val outgoingResult = outgoingRepo.getMyLetters()
+                    if (outgoingResult.isSuccess) {
+                        combinedList.addAll(
+                                outgoingResult
+                                        .getOrDefault(emptyList())
+                                        .filter {
+                                            it.status == "diarsipkan" || it.status == "disetujui"
+                                        }
+                                        .map { it.toLetter() }
+                        )
+                    }
 
-                _historyList.value =
-                        (listMasuk + listKeluar)
-                                .distinctBy { "${it.jenisSurat}_${it.id}" }
-                                .sortedByDescending { it.id } // or createdAt logic
+                    _historyList.value =
+                            combinedList
+                                    .distinctBy { "${it.jenisSurat}_${it.id}" }
+                                    .sortedByDescending { it.id }
+                }
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {
@@ -340,7 +411,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 nomorSurat = nomorSurat,
                 status = status,
                 tanggalSurat = tanggalSurat ?: "",
-                tanggalMasuk = tanggalMasuk,
+                tanggalMasuk = tanggalMasuk ?: "",
                 jenisSurat = "masuk",
                 prioritas = prioritas,
                 isiSurat = isiSurat,
@@ -350,7 +421,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 bidangTujuan = null, // Incoming doesn't have 'tujuan' field in same way
                 kesimpulan = null,
                 filePath = fileScanPath,
-                createdAt = tanggalMasuk
+                createdAt = tanggalMasuk ?: createdAt ?: ""
         )
     }
 }

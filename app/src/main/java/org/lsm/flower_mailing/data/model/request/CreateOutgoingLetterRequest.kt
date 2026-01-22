@@ -18,10 +18,17 @@ import com.google.gson.annotations.SerializedName
  */
 data class CreateOutgoingLetterRequest(
         @SerializedName("nomor_surat") val nomorSurat: String,
+        @SerializedName("pengirim") val pengirim: String,
         @SerializedName("judul_surat") val judulSurat: String,
-        @SerializedName("tujuan") val tujuan: String,
+        @SerializedName("bidang_tujuan") val tujuan: String,
         @SerializedName("isi_surat") val isiSurat: String,
         @SerializedName("scope") val scope: String,
+        @SerializedName("jenis_surat") val jenisSurat: String,
         @SerializedName("assigned_verifier_id") val assignedVerifierId: Int,
-        @SerializedName("file_path") val filePath: String
+        @SerializedName("file_path") val filePath: String,
+        @SerializedName("status") val status: String,
+        @SerializedName("nomor_agenda") val nomorAgenda: String,
+        @SerializedName("tanggal_surat") val tanggalSurat: String, // String ISO or formatted
+        @SerializedName("tanggal_masuk") val tanggalMasuk: String, // String ISO or formatted
+        @SerializedName("kesimpulan") val kesimpulan: String
 )

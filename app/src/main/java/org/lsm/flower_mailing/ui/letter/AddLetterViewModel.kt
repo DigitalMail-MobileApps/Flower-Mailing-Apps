@@ -79,16 +79,25 @@ class AddLetterViewModel(application: Application) : AndroidViewModel(applicatio
 
     val prioritasOptions = listOf("biasa", "segera", "penting")
 
+    var scope by mutableStateOf("Internal")
+
     init {
         viewModelScope.launch {
             userRole = userPreferences.userRoleFlow.first()
             // Kept existing logic for default tab, but architecture supports explicit choice now
             determinedJenisSurat =
-                    if (userRole?.equals("adc", ignoreCase = true) == true) {
+                    if (userRole?.equals("staf_program", ignoreCase = true) == true) {
                         "keluar"
                     } else {
                         "masuk"
                     }
+
+            // Default scope logic
+            if (userRole?.equals("staf_program", ignoreCase = true) == true) {
+                scope = "Eksternal"
+            } else {
+                scope = "Internal"
+            }
 
             // If outgoing, fetch verifiers
             fetchVerifiers()
@@ -97,25 +106,34 @@ class AddLetterViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun fetchVerifiers() {
         viewModelScope.launch {
-            // Only fetch if needed (e.g. for Keluar or generally available)
-            // Ideally we filter by scope if possible, e.g. "Internal" or just get all
-            val result = outgoingRepo.getVerifiers()
+            android.util.Log.d("AddLetterViewModel", "Fetching verifiers for scope: $scope")
+            val result = outgoingRepo.getVerifiers(scope)
             if (result.isSuccess) {
                 verifiers = result.getOrNull() ?: emptyList()
-                // Auto-select first if available?
-                if (verifiers.isNotEmpty() && assignedVerifierId == null) {
-                    assignedVerifierId = verifiers.first().id
-                }
+                // Auto-select first if available and nothing selected?
+                // Actually keep it null so user must select, unless we want to default
             } else {
-                // Log error or show transient message?
-                // errorMessage = "Gagal memuat verifikator: ${result.exceptionOrNull()?.message}"
+                android.util.Log.e(
+                        "AddLetterViewModel",
+                        "Failed to fetch verifiers: ${result.exceptionOrNull()?.message}"
+                )
             }
         }
+    }
+
+    fun updateScope(newScope: String) {
+        scope = newScope
+        fetchVerifiers()
     }
 
     fun onFileSelected(uri: Uri?) {
         fileUri = uri
         fileName = if (uri != null) getFileName(uri) else null
+    }
+
+    fun onClearFile() {
+        fileUri = null
+        fileName = null
     }
 
     fun createLetter(isDraft: Boolean) {
@@ -138,28 +156,61 @@ class AddLetterViewModel(application: Application) : AndroidViewModel(applicatio
                     return@launch
                 }
 
-                val requestFile = tempFile.asRequestBody("application/pdf".toMediaTypeOrNull())
+                val requestFile = tempFile.asRequestBody(getMimeType(tempFile).toMediaTypeOrNull())
                 val filePart = MultipartBody.Part.createFormData("file", tempFile.name, requestFile)
 
                 val result =
                         if (determinedJenisSurat == "keluar") {
-                            if (assignedVerifierId == null) {
-                                errorMessage = "Pilih Verifikator terlebih dahulu."
+                            // Fix: UI uses 'pengirim' field for the destination input in Outgoing
+                            // mode.
+                            val finalTujuan = if (tujuan.isBlank()) pengirim else tujuan
+
+                            // Safety: Enforce Internal scope for Staf Lembaga (UI hides selector
+                            // but let's be safe)
+                            if (userRole?.equals("staf_lembaga", ignoreCase = true) == true) {
+                                scope = "Internal"
+                            }
+
+                            if (finalTujuan.isBlank()) {
+                                errorMessage = "Tujuan surat wajib diisi."
+                                return@launch
+                            }
+
+                            // Backend auto-assigns verifier for "Internal" scope, so we don't
+                            // strictly need one selected.
+                            // For "Eksternal", verifier MUST be selected by user.
+
+                            // Validation: Eksternal scope requires assigned verifier
+                            val verifierId = assignedVerifierId ?: 18 // Default to 18 as requested
+                            if (scope == "Eksternal" && verifierId == 0) {
+                                errorMessage = "Verifikator wajib dipilih untuk surat Eksternal."
                                 return@launch
                             }
 
                             val request =
                                     CreateOutgoingLetterRequest(
                                             nomorSurat = nomorSurat,
+                                            pengirim = "Internal", // Sender is always internal org
                                             judulSurat = judulSurat,
-                                            tujuan = tujuan, // Make sure UI has this field
+                                            tujuan = finalTujuan,
                                             isiSurat = isiSurat,
-                                            scope = "Internal", // Default or add UI for it
-                                            assignedVerifierId = assignedVerifierId!!,
-                                            filePath = "" // Will be filled by Repo
+                                            scope = scope,
+                                            jenisSurat = "keluar",
+                                            assignedVerifierId = verifierId,
+                                            filePath = "", // Will be handled by Repo
+                                            status = if (isDraft) "draft" else "perlu_verifikasi",
+                                            nomorAgenda = nomorAgenda,
+                                            tanggalSurat = toUtcTimestamp(tanggalSurat),
+                                            tanggalMasuk = toUtcTimestamp(tanggalMasuk),
+                                            kesimpulan = kesimpulan
                                     )
+                            android.util.Log.d(
+                                    "AddLetterViewModel",
+                                    "Creating outgoing draft with tujuan: $finalTujuan"
+                            )
                             outgoingRepo.createDraft(request, filePart)
                         } else {
+                            android.util.Log.d("AddLetterViewModel", "Registering incoming letter")
                             val request =
                                     CreateIncomingLetterRequest(
                                             nomorSurat = nomorSurat,
@@ -167,17 +218,24 @@ class AddLetterViewModel(application: Application) : AndroidViewModel(applicatio
                                             judulSurat = judulSurat,
                                             tanggalSurat = toUtcTimestamp(tanggalSurat),
                                             tanggalMasuk = toUtcTimestamp(tanggalMasuk),
-                                            scope = "Eksternal",
-                                            fileScanPath = "", // Will be filled by Repo
+                                            scope = scope,
+                                            fileScanPath = "",
                                             prioritas = prioritas,
-                                            isiSurat = isiSurat
+                                            isiSurat = isiSurat,
+                                            status = if (isDraft) "draft" else "belum_disposisi"
                                     )
                             incomingRepo.registerLetter(request, filePart)
                         }
 
-                result.onSuccess { _navigateBack.emit(true) }.onFailure { e ->
-                    errorMessage = e.message ?: "Gagal membuat surat."
-                }
+                result
+                        .onSuccess {
+                            android.util.Log.d("AddLetterViewModel", "Success")
+                            _navigateBack.emit(true)
+                        }
+                        .onFailure { e ->
+                            android.util.Log.e("AddLetterViewModel", "Error: ${e.message}", e)
+                            errorMessage = e.message ?: "Gagal membuat surat."
+                        }
             } catch (e: Exception) {
                 errorMessage = e.message
                 e.printStackTrace()
@@ -214,16 +272,34 @@ class AddLetterViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun copyFileToCache(uri: Uri): File? {
-        // ... (Keep existing implementation logic)
         val context = getApplication<Application>()
-        val tempFile = File(context.cacheDir, "upload_${System.currentTimeMillis()}.pdf")
+        val contentResolver = context.contentResolver
+        val mimeType = contentResolver.getType(uri) ?: "application/pdf"
+        val extension =
+                when {
+                    mimeType.contains("pdf") -> "pdf"
+                    mimeType.contains("image/jpeg") -> "jpg"
+                    mimeType.contains("image/png") -> "png"
+                    else -> "pdf" // Default fallback
+                }
+
+        val tempFile = File(context.cacheDir, "upload_${System.currentTimeMillis()}.$extension")
         return try {
-            context.contentResolver.openInputStream(uri)?.use { input ->
+            contentResolver.openInputStream(uri)?.use { input ->
                 tempFile.outputStream().use { output -> input.copyTo(output) }
             }
             tempFile
         } catch (e: Exception) {
             null
+        }
+    }
+
+    private fun getMimeType(file: File): String {
+        return when (file.extension.lowercase()) {
+            "pdf" -> "application/pdf"
+            "jpg", "jpeg" -> "image/jpeg"
+            "png" -> "image/png"
+            else -> "application/octet-stream"
         }
     }
 
@@ -235,11 +311,26 @@ class AddLetterViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun toUtcTimestamp(dateStr: String): String {
-        // ... (Keep existing implementation or standard ISO)
-        return if (dateStr.isNotBlank()) dateStr else getCurrentUtcTimestamp()
+        if (dateStr.isBlank()) return getCurrentUtcTimestamp()
+
+        return try {
+            val inputSdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            val date = inputSdf.parse(dateStr)
+            if (date != null) {
+                val outputSdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+                outputSdf.timeZone = TimeZone.getTimeZone("UTC")
+                outputSdf.format(date)
+            } else {
+                getCurrentUtcTimestamp()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            getCurrentUtcTimestamp()
+        }
     }
     private fun getCurrentUtcTimestamp(): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US) // Simplify for now
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
         return sdf.format(Date())
     }
 }

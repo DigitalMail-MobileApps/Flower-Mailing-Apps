@@ -11,7 +11,7 @@ import com.google.gson.annotations.SerializedName
  * @property data The payload containing the requested resource(s).
  */
 data class ApiResponse<T>(
-        @SerializedName("status") val status: String,
+        @SerializedName("success") val success: Boolean,
         @SerializedName("message") val message: String,
-        @SerializedName("data") val data: T
+        @SerializedName("data") val data: T?
 )

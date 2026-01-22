@@ -44,8 +44,10 @@ private object Routes {
     const val AddLetter = "add_letter"
     const val LetterDetail = "letter_detail/{letterId}"
     const val Notifications = "notifications"
+    const val EditLetter = "edit_letter/{letterId}/{type}"
 
     fun letterDetail(letterId: Int) = "letter_detail/$letterId"
+    fun editLetter(letterId: Int, type: String) = "edit_letter/$letterId/$type"
 }
 
 class MainActivity : ComponentActivity() {
@@ -111,6 +113,7 @@ private fun AppNavHost(
         homeRoute(nav, loginViewModel)
         addLetterRoute(nav)
         letterDetailRoute(nav)
+        editLetterRoute(nav)
         notificationRoute(nav)
     }
 }
@@ -209,6 +212,27 @@ private fun NavGraphBuilder.letterDetailRoute(
         arguments = listOf(navArgument("letterId") { type = NavType.StringType })
     ) {
         LetterDetailScreen(
+            onNavigateBack = {
+                nav.popBackStack()
+            },
+            onNavigateToEdit = { letterId, type ->
+                nav.navigate(Routes.editLetter(letterId, type))
+            }
+        )
+    }
+}
+
+private fun NavGraphBuilder.editLetterRoute(
+    nav: NavHostController
+) {
+    composable(
+        route = Routes.EditLetter,
+        arguments = listOf(
+            navArgument("letterId") { type = NavType.StringType },
+            navArgument("type") { type = NavType.StringType }
+        )
+    ) {
+        org.lsm.flower_mailing.ui.letter.EditLetterScreen(
             onNavigateBack = {
                 nav.popBackStack()
             }

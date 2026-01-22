@@ -12,6 +12,7 @@ import com.google.gson.annotations.SerializedName
  * @property dispositionUserIds List of User IDs who are assigned to handle this disposition.
  */
 data class DispositionRequest(
-        @SerializedName("disposition") val disposition: String,
-        @SerializedName("disposition_user_ids") val dispositionUserIds: List<Int>
+        @SerializedName("instruksi_disposisi") val disposition: String,
+        @SerializedName("tujuan_disposisi") val tujuanDisposisi: String,
+        @SerializedName("catatan") val catatan: String = ""
 )

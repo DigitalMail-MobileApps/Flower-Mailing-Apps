@@ -1,7 +1,7 @@
 package org.lsm.flower_mailing.data.source.remote.api
 
-import org.lsm.flower_mailing.data.model.request.CreateIncomingLetterRequest
 import org.lsm.flower_mailing.data.model.request.DispositionRequest
+import org.lsm.flower_mailing.data.model.request.UpdateIncomingLetterRequest
 import org.lsm.flower_mailing.data.model.response.ApiResponse
 import org.lsm.flower_mailing.data.model.response.IncomingLetterDto
 import retrofit2.http.Body
@@ -18,17 +18,30 @@ import retrofit2.http.Path
  */
 interface IncomingLetterApi {
 
-        /** Retrieves the list of incoming letters. */
-        @GET("letters/masuk") suspend fun getLetters(): ApiResponse<List<IncomingLetterDto>>
+        /** STAFF: Retrieves the list of incoming letters registered by the current user. */
+        @GET("letters/masuk/my") suspend fun getMyLetters(): ApiResponse<List<IncomingLetterDto>>
+
+        /** Update an incoming letter. */
+        @retrofit2.http.PUT("letters/masuk/{id}")
+        suspend fun updateLetter(
+                @Path("id") id: Int,
+                @Body request: UpdateIncomingLetterRequest
+        ): ApiResponse<IncomingLetterDto>
+
+        /** Archives an incoming letter. */
+        @POST("letters/masuk/{id}/archive")
+        suspend fun archiveLetter(@Path("id") id: Int): ApiResponse<IncomingLetterDto>
 
         /**
          * Registers a new incoming letter from an external source.
          *
          * @param request Details of the incoming letter, including scan file path.
          */
+        @retrofit2.http.Multipart
         @POST("letters/masuk")
         suspend fun registerLetter(
-                @Body request: CreateIncomingLetterRequest
+                @retrofit2.http.Part file: okhttp3.MultipartBody.Part,
+                @retrofit2.http.PartMap data: Map<String, @JvmSuppressWildcards okhttp3.RequestBody>
         ): ApiResponse<IncomingLetterDto>
 
         /**
@@ -47,4 +60,8 @@ interface IncomingLetterApi {
         /** DIRECTOR: Retrieves incoming letters that require a disposition. */
         @GET("letters/masuk/need-disposition")
         suspend fun getLettersNeedingDisposition(): ApiResponse<List<IncomingLetterDto>>
+
+        /** DIRECTOR: Retrieves history of letters dispositioned by this user. */
+        @GET("letters/masuk/my-dispositions")
+        suspend fun getMyDispositions(): ApiResponse<List<IncomingLetterDto>>
 }

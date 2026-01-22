@@ -61,6 +61,13 @@ object RetrofitClient {
         return getRetrofit(context).create(AuthApi::class.java)
     }
 
+    fun getCommonLetterApi(
+            context: Context
+    ): org.lsm.flower_mailing.data.source.remote.api.CommonLetterApi {
+        return getRetrofit(context)
+                .create(org.lsm.flower_mailing.data.source.remote.api.CommonLetterApi::class.java)
+    }
+
     fun getOutgoingLetterApi(context: Context): OutgoingLetterApi {
         return getRetrofit(context).create(OutgoingLetterApi::class.java)
     }

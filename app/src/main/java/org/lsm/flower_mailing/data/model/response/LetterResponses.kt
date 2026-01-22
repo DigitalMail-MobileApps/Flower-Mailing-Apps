@@ -1,34 +1,46 @@
-
-
 package org.lsm.flower_mailing.data.model.response
 
 import com.google.gson.annotations.SerializedName
 
-/** Represents an Outgoing Letter (Surat Keluar) as returned by the API. */
+/**
+ * Represents an Outgoing Letter (Surat Keluar) as returned by the API. Backend uses GORM model
+ * which serializes with PascalCase field names.
+ */
 data class OutgoingLetterDto(
-        @SerializedName("id") val id: Int,
-        @SerializedName("nomor_surat") val nomorSurat: String,
-        @SerializedName("judul_surat") val judulSurat: String,
-        @SerializedName("status") val status: String,
-        @SerializedName("tujuan") val tujuan: String,
-        @SerializedName("created_at") val createdAt: String,
-        @SerializedName("tanggal_surat") val tanggalSurat: String?,
-        @SerializedName("file_path") val filePath: String?
+        @SerializedName("ID") val id: Int = 0,
+        @SerializedName("NomorSurat") val nomorSurat: String = "",
+        @SerializedName("JudulSurat") val judulSurat: String = "",
+        @SerializedName("Status") val status: String = "",
+        @SerializedName("BidangTujuan") val tujuan: String = "",
+        @SerializedName("CreatedAt") val createdAt: String = "",
+        @SerializedName("TanggalSurat") val tanggalSurat: String? = null,
+        @SerializedName("FilePath") val filePath: String? = null,
+        @SerializedName("Pengirim") val pengirim: String? = null,
+        @SerializedName("JenisSurat") val jenisSurat: String? = null,
+        @SerializedName("scope") val scope: String? = null, // lowercase in User model
+        @SerializedName("Prioritas") val prioritas: String? = null,
+        @SerializedName("IsiSurat") val isiSurat: String? = null,
+        @SerializedName("NomorAgenda") val nomorAgenda: String? = null,
+        @SerializedName("TanggalMasuk") val tanggalMasuk: String? = null
 )
 
-/** Represents an Incoming Letter (Surat Masuk) as returned by the API. */
+/**
+ * Represents an Incoming Letter (Surat Masuk) as returned by the API. Backend uses GORM model which
+ * serializes with PascalCase field names.
+ */
 data class IncomingLetterDto(
-        @SerializedName("id") val id: Int,
-        @SerializedName("nomor_surat") val nomorSurat: String,
-        @SerializedName("judul_surat") val judulSurat: String,
-        @SerializedName("status") val status: String,
-        @SerializedName("pengirim") val pengirim: String,
-        @SerializedName("tanggal_masuk") val tanggalMasuk: String,
-        @SerializedName("disposisi") val disposisi: String?,
-        @SerializedName("tanggal_surat") val tanggalSurat: String?,
-        @SerializedName("prioritas") val prioritas: String?,
-        @SerializedName("isi_surat") val isiSurat: String?,
-        @SerializedName("file_scan_path") val fileScanPath: String?
+        @SerializedName("ID") val id: Int = 0,
+        @SerializedName("NomorSurat") val nomorSurat: String = "",
+        @SerializedName("JudulSurat") val judulSurat: String = "",
+        @SerializedName("Status") val status: String = "",
+        @SerializedName("Pengirim") val pengirim: String = "",
+        @SerializedName("TanggalMasuk") val tanggalMasuk: String? = null,
+        @SerializedName("Disposisi") val disposisi: String? = null,
+        @SerializedName("TanggalSurat") val tanggalSurat: String? = null,
+        @SerializedName("Prioritas") val prioritas: String? = null,
+        @SerializedName("IsiSurat") val isiSurat: String? = null,
+        @SerializedName("FilePath") val fileScanPath: String? = null,
+        @SerializedName("CreatedAt") val createdAt: String? = null
 )
 
 /** Wrapper for paginated list responses. */

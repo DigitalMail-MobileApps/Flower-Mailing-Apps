@@ -25,8 +25,8 @@ class AuthRepository(
         return try {
             val response = authApi.login(request)
 
-            if (response.status == "success") {
-                val data = response.data
+            if (response.success) {
+                val data = response.data ?: throw Exception("Login failed: No data received")
                 val user = data.user
 
                 // Save session locally

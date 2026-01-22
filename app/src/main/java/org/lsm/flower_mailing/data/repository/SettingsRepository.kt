@@ -16,7 +16,7 @@ class SettingsRepository(
     suspend fun getProfile(): Result<User> {
         return try {
             val response = settingsApi.getProfile()
-            if (response.status == "success" && response.data != null) {
+            if (response.success && response.data != null) {
                 val user = response.data
                 // Update local session with potentially new Name/Email
                 preferences.updateUserDetails(
@@ -37,7 +37,7 @@ class SettingsRepository(
         return try {
             val request = UpdateProfileRequest(firstName, lastName)
             val response = settingsApi.updateProfile(request)
-            if (response.status == "success" && response.data != null) {
+            if (response.success && response.data != null) {
                 val user = response.data
                 // Update local session
                 preferences.updateUserDetails(
@@ -57,7 +57,7 @@ class SettingsRepository(
     suspend fun changePassword(request: ChangePasswordRequest): Result<String> {
         return try {
             val response = settingsApi.changePassword(request)
-            if (response.status == "success") {
+            if (response.success) {
                 Result.success(response.message)
             } else {
                 Result.failure(Exception(response.message))

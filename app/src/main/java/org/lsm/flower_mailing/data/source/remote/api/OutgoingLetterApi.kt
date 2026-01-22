@@ -1,6 +1,5 @@
 package org.lsm.flower_mailing.data.source.remote.api
 
-import org.lsm.flower_mailing.data.model.request.CreateOutgoingLetterRequest
 import org.lsm.flower_mailing.data.model.request.UpdateOutgoingLetterRequest
 import org.lsm.flower_mailing.data.model.response.ApiResponse
 import org.lsm.flower_mailing.data.model.response.OutgoingLetterDto
@@ -28,9 +27,11 @@ interface OutgoingLetterApi {
          * @param request The letter details including the associated file path.
          * @return The created letter with "draft" status.
          */
+        @retrofit2.http.Multipart
         @POST("letters/keluar")
         suspend fun createDraft(
-                @Body request: CreateOutgoingLetterRequest
+                @retrofit2.http.Part file: okhttp3.MultipartBody.Part,
+                @retrofit2.http.PartMap data: Map<String, @JvmSuppressWildcards okhttp3.RequestBody>
         ): ApiResponse<OutgoingLetterDto>
 
         /**
@@ -51,8 +52,14 @@ interface OutgoingLetterApi {
          *
          * @param id The ID of the letter to verify.
          */
+        /**
+         * MANAGER: Approves a letter for verification. Only accessible by users with 'manager'
+         * role.
+         *
+         * @param id The ID of the letter to verify.
+         */
         @POST("letters/keluar/{id}/verify/approve")
-        suspend fun verifyLetter(@Path("id") id: Int): ApiResponse<OutgoingLetterDto>
+        suspend fun verifyLetter(@Path("id") id: Int): ApiResponse<Unit>
 
         /**
          * DIRECTOR: Approves a letter for final issuance. Only accessible by users with 'direktur'
@@ -61,10 +68,19 @@ interface OutgoingLetterApi {
          * @param id The ID of the letter to approve.
          */
         @POST("letters/keluar/{id}/approve")
-        suspend fun approveLetter(@Path("id") id: Int): ApiResponse<OutgoingLetterDto>
+        suspend fun approveLetter(@Path("id") id: Int): ApiResponse<Unit>
 
-        /** Retrieves the list of outgoing letters (generic/all). */
-        @GET("letters/keluar") suspend fun getLetters(): ApiResponse<List<OutgoingLetterDto>>
+        /** MANAGER: Rejects a letter during verification. */
+        @POST("letters/keluar/{id}/verify/reject")
+        suspend fun verifyLetterReject(@Path("id") id: Int): ApiResponse<Unit>
+
+        /** DIRECTOR: Rejects a letter during approval. */
+        @POST("letters/keluar/{id}/reject")
+        suspend fun rejectLetter(@Path("id") id: Int): ApiResponse<Unit>
+
+        /** STAFF: Archives an approved outgoing letter. */
+        @POST("letters/keluar/{id}/archive")
+        suspend fun archiveLetter(@Path("id") id: Int): ApiResponse<Unit>
 
         /** STAFF: Retrieves the list of letters created by the current user. */
         @GET("letters/keluar/my") suspend fun getMyLetters(): ApiResponse<List<OutgoingLetterDto>>
