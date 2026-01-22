@@ -32,11 +32,7 @@ import org.lsm.flower_mailing.ui.settings.EditProfileScreen
 import org.lsm.flower_mailing.ui.settings.SettingsScreen
 import org.lsm.flower_mailing.ui.settings.SettingsViewModel
 
-sealed class HomeRoute(
-    val route: String,
-    val title: String,
-    val icon: ImageVector
-) {
+sealed class HomeRoute(val route: String, val title: String, val icon: ImageVector) {
     object Home : HomeRoute("home", "Home", Icons.Default.Home)
     object SuratMasuk : HomeRoute("surat_masuk", "Surat Masuk", Icons.Default.Inbox)
     object Draft : HomeRoute("draft", "Draft", Icons.Default.Drafts)
@@ -46,21 +42,23 @@ sealed class HomeRoute(
     object SuratKeluar : HomeRoute("surat_keluar", "Surat Keluar", Icons.Default.Outbox)
     object Notification : HomeRoute("notification", "Notification", Icons.Default.Settings)
     object EditProfile : HomeRoute("settings/edit_profile", "Edit Profil", Icons.Default.Person)
-    object ChangePassword : HomeRoute("settings/change_password", "Ganti Password", Icons.Default.Lock)
+    object ChangePassword :
+            HomeRoute("settings/change_password", "Ganti Password", Icons.Default.Lock)
 }
 
 @Composable
 fun HomeNavHost(
-    navController: NavHostController,
-    startDestination: String,
-    viewModel: HomeViewModel,
-    onNavigateToAddLetter: () -> Unit,
-    onNavigateToLetterDetail: (Int) -> Unit,
+        navController: NavHostController,
+        startDestination: String,
+        viewModel: HomeViewModel,
+        onNavigateToAddLetter: () -> Unit,
+        onNavigateToLetterDetail: (Int) -> Unit,
+        onLoggedOut: () -> Unit
 ) {
     NavHost(
-        navController = navController,
-        startDestination = startDestination,
-        modifier = Modifier.fillMaxSize()
+            navController = navController,
+            startDestination = startDestination,
+            modifier = Modifier.fillMaxSize()
     ) {
         composable("loading") {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -76,62 +74,72 @@ fun HomeNavHost(
 
         composable(HomeRoute.Home.route) {
             UmumDashboardScreen(
-                viewModel = viewModel,
-                onNavigateToAddLetter = onNavigateToAddLetter,
-                onNavigateToSuratMasuk = { navController.navigate(HomeRoute.SuratMasuk.route) },
-                onNavigateToDraft = { navController.navigate(HomeRoute.Draft.route) },
-                onNavigateToHistory = { navController.navigate(HomeRoute.History.route)},
-                onNavigateToSuratKeluar = {navController.navigate(HomeRoute.SuratKeluar.route)}
+                    viewModel = viewModel,
+                    onNavigateToAddLetter = onNavigateToAddLetter,
+                    onNavigateToSuratMasuk = { navController.navigate(HomeRoute.SuratMasuk.route) },
+                    onNavigateToDraft = { navController.navigate(HomeRoute.Draft.route) },
+                    onNavigateToHistory = { navController.navigate(HomeRoute.History.route) },
+                    onNavigateToSuratKeluar = {
+                        navController.navigate(HomeRoute.SuratKeluar.route)
+                    }
             )
         }
         composable(HomeRoute.SuratMasuk.route) {
-            SuratMasukScreen(viewModel = viewModel, onNavigateToLetterDetail = onNavigateToLetterDetail)
+            SuratMasukScreen(
+                    viewModel = viewModel,
+                    onNavigateToLetterDetail = onNavigateToLetterDetail
+            )
         }
         composable(HomeRoute.Draft.route) {
             DraftScreen(viewModel = viewModel, onNavigateToLetterDetail = onNavigateToLetterDetail)
         }
         composable(HomeRoute.History.route) {
-            HistoryScreen(viewModel = viewModel, onNavigateToLetterDetail = onNavigateToLetterDetail)
+            HistoryScreen(
+                    viewModel = viewModel,
+                    onNavigateToLetterDetail = onNavigateToLetterDetail
+            )
         }
         composable(HomeRoute.DirekturDashboard.route) {
             DirekturDashboardScreen(
-                viewModel = viewModel,
-                onNavigateToSuratMasuk = { navController.navigate(HomeRoute.SuratMasuk.route) },
-                onNavigateToSuratKeluar = { navController.navigate(HomeRoute.SuratKeluar.route) },
-                onNavigateToHistory = { navController.navigate(HomeRoute.History.route) }
+                    viewModel = viewModel,
+                    onNavigateToSuratMasuk = { navController.navigate(HomeRoute.SuratMasuk.route) },
+                    onNavigateToSuratKeluar = {
+                        navController.navigate(HomeRoute.SuratKeluar.route)
+                    }
             )
         }
 
         composable(HomeRoute.SuratKeluar.route) {
-            SuratKeluarScreen(
-                viewModel = viewModel,
-                onNavigateToDetail = onNavigateToLetterDetail
-            )
+            SuratKeluarScreen(viewModel = viewModel, onNavigateToDetail = onNavigateToLetterDetail)
         }
 
         composable(HomeRoute.Settings.route) {
             val settingsViewModel: SettingsViewModel = viewModel()
             SettingsScreen(
-                viewModel = settingsViewModel,
-                onNavigateToEditProfile = { navController.navigate(HomeRoute.EditProfile.route) },
-                onNavigateToChangePassword = { navController.navigate(HomeRoute.ChangePassword.route) },
-                onLoggedOut = {}
+                    viewModel = settingsViewModel,
+                    onNavigateToEditProfile = {
+                        navController.navigate(HomeRoute.EditProfile.route)
+                    },
+                    onNavigateToChangePassword = {
+                        navController.navigate(HomeRoute.ChangePassword.route)
+                    },
+                    onLoggedOut = onLoggedOut
             )
         }
 
         composable(HomeRoute.EditProfile.route) {
             val settingsViewModel: SettingsViewModel = viewModel()
             EditProfileScreen(
-                viewModel = settingsViewModel,
-                onNavigateBack = { navController.popBackStack() }
+                    viewModel = settingsViewModel,
+                    onNavigateBack = { navController.popBackStack() }
             )
         }
 
         composable(HomeRoute.ChangePassword.route) {
             val settingsViewModel: SettingsViewModel = viewModel()
             ChangePasswordScreen(
-                viewModel = settingsViewModel,
-                onNavigateBack = { navController.popBackStack() }
+                    viewModel = settingsViewModel,
+                    onNavigateBack = { navController.popBackStack() }
             )
         }
     }

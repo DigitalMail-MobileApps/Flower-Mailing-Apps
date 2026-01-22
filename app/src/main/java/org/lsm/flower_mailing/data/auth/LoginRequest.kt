@@ -1,3 +1,8 @@
 package org.lsm.flower_mailing.data.auth
 
-data class LoginRequest(val email: String, val password: String)
+import com.google.gson.annotations.SerializedName
+
+data class LoginRequest(
+        @SerializedName("email") val email: String,
+        @SerializedName("password") val password: String
+)

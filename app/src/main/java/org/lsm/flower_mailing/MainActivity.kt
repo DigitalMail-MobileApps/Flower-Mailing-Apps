@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -43,8 +44,10 @@ private object Routes {
     const val AddLetter = "add_letter"
     const val LetterDetail = "letter_detail/{letterId}"
     const val Notifications = "notifications"
+    const val EditLetter = "edit_letter/{letterId}/{type}"
 
     fun letterDetail(letterId: Int) = "letter_detail/$letterId"
+    fun editLetter(letterId: Int, type: String) = "edit_letter/$letterId/$type"
 }
 
 class MainActivity : ComponentActivity() {
@@ -62,10 +65,8 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(isLoggedIn) {
                     if (isLoggedIn == true) {
                         val letterIdString = intent?.getStringExtra("letterIdFromNotification")
-
                         if (letterIdString != null) {
                             val letterId = letterIdString.toIntOrNull()
-
                             if (letterId != null) {
                                 nav.navigate(Routes.letterDetail(letterId))
                                 intent.removeExtra("letterIdFromNotification")
@@ -77,7 +78,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
+                    CompositionLocalProvider(LocalOverscrollFactory provides null) {
                         AppNavHost(
                             nav = nav,
                             isLoggedIn = isLoggedIn,
@@ -112,6 +113,7 @@ private fun AppNavHost(
         homeRoute(nav, loginViewModel)
         addLetterRoute(nav)
         letterDetailRoute(nav)
+        editLetterRoute(nav)
         notificationRoute(nav)
     }
 }
@@ -133,7 +135,7 @@ private fun NavGraphBuilder.splashRoute(
     }
 }
 
-private fun NavGraphBuilder.loginRoute(
+fun NavGraphBuilder.loginRoute(
     nav: NavHostController,
     loginViewModel: LoginViewModel
 ) {
@@ -171,7 +173,10 @@ private fun NavGraphBuilder.homeRoute(
             onLoggedOut = {
                 loginViewModel.onLogout()
                 nav.navigate(Routes.Login) {
-                    popUpTo(nav.graph.findStartDestination().id) { inclusive = true }
+                    popUpTo(nav.graph.id) {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
                 }
             },
             onNavigateToAddLetter = {
@@ -207,6 +212,27 @@ private fun NavGraphBuilder.letterDetailRoute(
         arguments = listOf(navArgument("letterId") { type = NavType.StringType })
     ) {
         LetterDetailScreen(
+            onNavigateBack = {
+                nav.popBackStack()
+            },
+            onNavigateToEdit = { letterId, type ->
+                nav.navigate(Routes.editLetter(letterId, type))
+            }
+        )
+    }
+}
+
+private fun NavGraphBuilder.editLetterRoute(
+    nav: NavHostController
+) {
+    composable(
+        route = Routes.EditLetter,
+        arguments = listOf(
+            navArgument("letterId") { type = NavType.StringType },
+            navArgument("type") { type = NavType.StringType }
+        )
+    ) {
+        org.lsm.flower_mailing.ui.letter.EditLetterScreen(
             onNavigateBack = {
                 nav.popBackStack()
             }

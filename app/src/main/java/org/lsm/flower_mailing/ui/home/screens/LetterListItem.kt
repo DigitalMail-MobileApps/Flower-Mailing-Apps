@@ -1,5 +1,6 @@
 package org.lsm.flower_mailing.ui.home.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,113 +33,115 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.lsm.flower_mailing.data.letter.Letter
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
+import org.lsm.flower_mailing.data.letter.Letter
 
 @Composable
-fun LetterListItem(
-    letter: Letter,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun LetterListItem(letter: Letter, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(12.dp)
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .clickable(onClick = onClick),
-        shape = shape,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+            modifier = modifier.fillMaxWidth().clip(shape).clickable(onClick = onClick),
+            shape = shape,
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors =
+                    CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(
-            modifier = Modifier
-                .padding(14.dp)
-                .fillMaxWidth()
-        ) {
+        Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+            // Row 1: Status & Date (Reordered)
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
             ) {
+                StatusBadge(status = letter.status)
                 Text(
+                        text = formatSmartTime(letter.tanggalMasuk ?: letter.tanggalSurat ?: ""),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Row 2: Title
+            Text(
                     text = letter.judulSurat,
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
+                    style =
+                            MaterialTheme.typography.titleMedium.copy(
+                                    fontSize = 16.sp,
+                                    lineHeight = 22.sp
+                            ),
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f).padding(end = 8.dp)
+                    color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Row 3: Meta (Sender | Number)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                        text = letter.pengirim,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
                 )
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                if (letter.nomorSurat.isNotBlank()) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "|", color = MaterialTheme.colorScheme.outlineVariant)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                            imageVector = Icons.Default.Numbers,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = formatSmartTime(letter.tanggalMasuk),
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = letter.nomorSurat,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = if (letter.jenisSurat.equals("keluar", true)) letter.pengirim else letter.pengirim,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Numbers,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = letter.nomorSurat,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Row 4: Category Tags (Type, Scope, Priority)
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
             ) {
                 TypeBadge(type = letter.jenisSurat)
 
-                if (!letter.prioritas.isNullOrBlank() && !letter.prioritas.equals("biasa", ignoreCase = true)) {
+                ScopeBadge(scope = letter.scope ?: "")
+
+                if (!letter.prioritas.isNullOrBlank() &&
+                                !letter.prioritas.equals("biasa", ignoreCase = true)
+                ) {
                     SifatBadge(sifat = letter.prioritas)
                 }
-
-                StatusBadge(status = letter.status)
             }
         }
     }
@@ -155,23 +158,45 @@ fun TypeBadge(type: String) {
 
 @Composable
 fun SifatBadge(sifat: String) {
-    val (bg, text) = when (sifat.lowercase()) {
-        "penting" -> Color(0xFFFFEBEE) to Color(0xFFC62828)
-        "segera" -> Color(0xFFFFF3E0) to Color(0xFFEF6C00)
-        else -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
-    }
+    val (bg, text) =
+            when (sifat.lowercase()) {
+                "penting" -> Color(0xFFFFEBEE) to Color(0xFFC62828)
+                "segera" -> Color(0xFFFFF3E0) to Color(0xFFEF6C00)
+                else -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
+            }
     Badge(text = sifat.uppercase(), backgroundColor = bg, textColor = text)
 }
 
 @Composable
+fun ScopeBadge(scope: String) {
+    if (scope.isBlank()) return
+    val (bg, text) =
+            when (scope.lowercase()) {
+                "internal" -> Color(0xFFE8EAF6) to Color(0xFF3F51B5) // Indigo
+                "eksternal" -> Color(0xFFFBE9E7) to Color(0xFFBF360C) // Deep Orange
+                else ->
+                        MaterialTheme.colorScheme.surfaceVariant to
+                                MaterialTheme.colorScheme.onSurfaceVariant
+            }
+    Badge(text = scope.uppercase(), backgroundColor = bg, textColor = text)
+}
+
+@Composable
 fun StatusBadge(status: String) {
-    val (bg, text) = when (status) {
-        "draft" -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-        "perlu_verifikasi", "perlu_revisi" -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-        "belum_disposisi", "perlu_persetujuan" -> Color(0xFFFFF8E1) to Color(0xFFF57F17)
-        "sudah_disposisi", "disetujui", "terkirim" -> Color(0xFFE8F5E9) to Color(0xFF1B5E20)
-        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val (bg, text) =
+            when (status) {
+                "draft" ->
+                        MaterialTheme.colorScheme.surfaceVariant to
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                "perlu_verifikasi", "perlu_revisi" ->
+                        MaterialTheme.colorScheme.errorContainer to
+                                MaterialTheme.colorScheme.onErrorContainer
+                "belum_disposisi", "perlu_persetujuan" -> Color(0xFFFFF8E1) to Color(0xFFF57F17)
+                "sudah_disposisi", "disetujui", "terkirim" -> Color(0xFFE8F5E9) to Color(0xFF1B5E20)
+                else ->
+                        MaterialTheme.colorScheme.surfaceVariant to
+                                MaterialTheme.colorScheme.onSurfaceVariant
+            }
 
     val label = status.replace('_', ' ').uppercase()
 
@@ -181,19 +206,20 @@ fun StatusBadge(status: String) {
 @Composable
 fun Badge(text: String, backgroundColor: Color, textColor: Color) {
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(backgroundColor)
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+            modifier =
+                    Modifier.clip(RoundedCornerShape(4.dp))
+                            .background(backgroundColor)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.5.sp
-            ),
-            color = textColor
+                text = text,
+                style =
+                        MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                        ),
+                color = textColor
         )
     }
 }
@@ -201,24 +227,22 @@ fun Badge(text: String, backgroundColor: Color, textColor: Color) {
 @Composable
 fun CenteredMessage(icon: ImageVector, message: String) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(40.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.fillMaxWidth().padding(40.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-            color = MaterialTheme.colorScheme.outline,
-            textAlign = TextAlign.Center
+                text = message,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                color = MaterialTheme.colorScheme.outline,
+                textAlign = TextAlign.Center
         )
     }
 }
@@ -243,15 +267,20 @@ fun formatSmartTime(timestamp: String): String {
         val letterDate = Calendar.getInstance()
         letterDate.time = date
 
-        val format: SimpleDateFormat = if (now.get(Calendar.YEAR) == letterDate.get(Calendar.YEAR) &&
-            now.get(Calendar.DAY_OF_YEAR) == letterDate.get(Calendar.DAY_OF_YEAR)) {
-            SimpleDateFormat("HH:mm", Locale.getDefault())
-        } else if (now.get(Calendar.YEAR) == letterDate.get(Calendar.YEAR) &&
-            now.get(Calendar.DAY_OF_YEAR) - letterDate.get(Calendar.DAY_OF_YEAR) == 1) {
-            return "Kemarin"
-        } else {
-            SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-        }
+        val format: SimpleDateFormat =
+                if (now.get(Calendar.YEAR) == letterDate.get(Calendar.YEAR) &&
+                                now.get(Calendar.DAY_OF_YEAR) ==
+                                        letterDate.get(Calendar.DAY_OF_YEAR)
+                ) {
+                    SimpleDateFormat("HH:mm", Locale.getDefault())
+                } else if (now.get(Calendar.YEAR) == letterDate.get(Calendar.YEAR) &&
+                                now.get(Calendar.DAY_OF_YEAR) -
+                                        letterDate.get(Calendar.DAY_OF_YEAR) == 1
+                ) {
+                    return "Kemarin"
+                } else {
+                    SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+                }
 
         format.format(date)
     } catch (e: Exception) {
