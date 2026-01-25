@@ -136,27 +136,47 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     // Verification letters are fetched in fetchOutboxLetter()
                     // Manager doesn't have access to Surat Masuk tab
                 }
-                // 3. Staf Lembaga - Fetches their registered Surat Masuk
+                // 3. Staf Lembaga - Fetches their registered Surat Masuk AND Needs Reply
                 else if (role == "staf_lembaga") {
-                    val incomingResult = incomingRepo.getMyLetters()
-                    if (incomingResult.isSuccess) {
+                    // Fetch what they registered
+                    val myLettersResult = incomingRepo.getMyLetters()
+                    if (myLettersResult.isSuccess) {
                         combinedList.addAll(
-                                incomingResult
+                                myLettersResult
                                         .getOrDefault(emptyList())
-                                        .filter {
-                                            it.status != "diarsipkan" &&
-                                                    it.status != "sudah_disposisi"
-                                        } // Exclude archived & disposed
+                                        .filter { it.status != "diarsipkan" }
                                         .map { it.toLetter() }
                         )
                     }
+
+                    // NEW: Fetch what needs reply (Internal scope handled by backend)
+                    val needsReplyResult = incomingRepo.getLettersNeedingReply()
+                    if (needsReplyResult.isSuccess) {
+                        combinedList.addAll(
+                                needsReplyResult.getOrDefault(emptyList()).map { it.toLetter() }
+                        )
+                    }
                 }
-                // 4. Staf Program and others - No Surat Masuk access
+                // 4. Staf Program - Fetches Needs Reply (Eksternal/All)
+                else if (role == "staf_program") {
+                    val needsReplyResult = incomingRepo.getLettersNeedingReply()
+                    if (needsReplyResult.isSuccess) {
+                        combinedList.addAll(
+                                needsReplyResult.getOrDefault(emptyList()).map { it.toLetter() }
+                        )
+                    }
+                }
+                // 5. Generic/Other
                 else {
-                    // staf_program only creates Surat Keluar, no inbox
+                    // No inbox for others
                 }
 
-                _inboxList.value = combinedList.distinctBy { "${it.jenisSurat}_${it.id}" }
+                // Distinct by ID to avoid duplicates if a letter appears in both lists (unlikely
+                // but safe)
+                _inboxList.value =
+                        combinedList.distinctBy { "${it.jenisSurat}_${it.id}" }.sortedByDescending {
+                            it.id
+                        } // Sort by newest first
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {
@@ -345,8 +365,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                                     incomingResult
                                             .getOrDefault(emptyList())
                                             .filter {
-                                                it.status == "sudah_disposisi" ||
-                                                        it.status == "diarsipkan"
+                                                it.status ==
+                                                        "diarsipkan" // Only show 'diarsipkan' in
+                                                // History
                                             }
                                             .map { it.toLetter() }
                             )

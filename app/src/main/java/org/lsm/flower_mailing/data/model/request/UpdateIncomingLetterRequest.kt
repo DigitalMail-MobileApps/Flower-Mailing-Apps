@@ -11,5 +11,6 @@ data class UpdateIncomingLetterRequest(
         @SerializedName("scope") val scope: String? = null, // UpdateMasuk HAS Scope
         @SerializedName("prioritas") val prioritas: String? = null,
         @SerializedName("isi_surat") val isiSurat: String? = null,
+        @SerializedName("kesimpulan") val kesimpulan: String? = null,
         @SerializedName("status") val status: String? = null
 )

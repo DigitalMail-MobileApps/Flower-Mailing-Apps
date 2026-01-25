@@ -35,7 +35,10 @@ import org.lsm.flower_mailing.ui.components.FilePreviewCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddLetterScreen(viewModel: AddLetterViewModel = viewModel(), onNavigateBack: () -> Unit) {
+fun AddLetterScreen(
+        viewModel: AddLetterViewModel = viewModel(),
+        onNavigateBack: (Boolean) -> Unit
+) {
         val context = LocalContext.current
         val isSuratKeluar = viewModel.determinedJenisSurat == "keluar"
         val screenTitle = if (isSuratKeluar) "Registrasi Surat Keluar" else "Registrasi Surat Masuk"
@@ -72,7 +75,7 @@ fun AddLetterScreen(viewModel: AddLetterViewModel = viewModel(), onNavigateBack:
                         .show()
         }
 
-        LaunchedEffect(Unit) { viewModel.navigateBack.collect { if (it) onNavigateBack() } }
+        LaunchedEffect(Unit) { viewModel.navigateBack.collect { if (it) onNavigateBack(true) } }
 
         Scaffold(
                 topBar = {
@@ -100,7 +103,7 @@ fun AddLetterScreen(viewModel: AddLetterViewModel = viewModel(), onNavigateBack:
                                         }
                                 },
                                 navigationIcon = {
-                                        IconButton(onClick = onNavigateBack) {
+                                        IconButton(onClick = { onNavigateBack(false) }) {
                                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                         }
                                 },

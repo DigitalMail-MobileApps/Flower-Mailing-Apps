@@ -28,5 +28,6 @@ data class CreateIncomingLetterRequest(
         @SerializedName("file_scan_path") val fileScanPath: String,
         @SerializedName("prioritas") val prioritas: String,
         @SerializedName("isi_surat") val isiSurat: String,
+        @SerializedName("kesimpulan") val kesimpulan: String,
         @SerializedName("status") val status: String? = null
 )

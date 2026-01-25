@@ -51,7 +51,8 @@ enum class LetterButtonType {
 
         // Common
         EDIT,
-        DELETE
+        DELETE,
+        REPLY
 }
 
 class LetterDetailViewModel(
@@ -95,6 +96,7 @@ class LetterDetailViewModel(
         var bidangTujuan by mutableStateOf("")
         var tanggalDisposisi by mutableStateOf("")
         var scope by mutableStateOf("")
+        var needsReply by mutableStateOf(false)
 
         val prioritasOptions = listOf("biasa", "segera", "penting")
 
@@ -102,6 +104,9 @@ class LetterDetailViewModel(
         val uiState = _uiState.asStateFlow()
         private val _navigateBack = MutableSharedFlow<Boolean>()
         val navigateBack = _navigateBack.asSharedFlow()
+
+        private val _navigateToReply = MutableSharedFlow<Triple<Int, String, String>>()
+        val navigateToReply = _navigateToReply.asSharedFlow()
 
         init {
                 fetchLetterDetails()
@@ -158,6 +163,8 @@ class LetterDetailViewModel(
                 tanggalDisposisi =
                         if (isActionNeeded) formatMillisToDateTimeString(System.currentTimeMillis())
                         else formatTimestampToDateTime(letter.tanggalDisposisi)
+
+                needsReply = letter.needsReply
         }
 
         private fun calculateUiState(role: String?, letter: Letter) {
@@ -295,7 +302,8 @@ class LetterDetailViewModel(
                                                                                 LetterButtonType
                                                                                         .EDIT,
                                                                                 LetterButtonType
-                                                                                        .SUBMIT_LETTER, // Submit to Direktur
+                                                                                        .SUBMIT_LETTER, // Submit to
+                                                                                // Direktur
                                                                                 LetterButtonType
                                                                                         .DELETE
                                                                         )
@@ -307,7 +315,13 @@ class LetterDetailViewModel(
                                                                 isDispositionSectionVisible = true,
                                                                 isDispositionInfoEditable = false,
                                                                 downloadUrl = letter.filePath,
-                                                                buttons = emptyList()
+                                                                buttons =
+                                                                        if (letter.needsReply)
+                                                                                listOf(
+                                                                                        LetterButtonType
+                                                                                                .REPLY
+                                                                                )
+                                                                        else emptyList()
                                                         )
                                         }
                                 role.equals("staf_program", ignoreCase = true) ->
@@ -328,7 +342,13 @@ class LetterDetailViewModel(
                                                                 isDispositionSectionVisible = true,
                                                                 isDispositionInfoEditable = false,
                                                                 downloadUrl = letter.filePath,
-                                                                buttons = emptyList()
+                                                                buttons =
+                                                                        if (letter.needsReply)
+                                                                                listOf(
+                                                                                        LetterButtonType
+                                                                                                .REPLY
+                                                                                )
+                                                                        else emptyList()
                                                         )
                                         }
                                 role.equals("direktur", ignoreCase = true) ->
@@ -405,6 +425,7 @@ class LetterDetailViewModel(
                                                         prioritas = prioritas,
                                                         tanggalSurat = toUtcTimestamp(tanggalSurat),
                                                         isiSurat = isiSurat,
+                                                        kesimpulan = kesimpulan,
                                                         status = "belum_disposisi"
                                                 )
                                 val result = incomingRepo.updateLetter(letterId.toInt(), request)
@@ -482,7 +503,8 @@ class LetterDetailViewModel(
                                         incomingRepo.disposeLetter(
                                                 letterId.toInt(),
                                                 disposisi,
-                                                bidangTujuan
+                                                bidangTujuan,
+                                                needsReply
                                         )
                                 if (result.isSuccess) {
                                         _navigateBack.emit(true)
@@ -770,5 +792,11 @@ class LetterDetailViewModel(
                 val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
                 sdf.timeZone = TimeZone.getTimeZone("UTC")
                 return sdf.format(Date())
+        }
+
+        fun onReply() {
+                viewModelScope.launch {
+                        _navigateToReply.emit(Triple(letterId.toInt(), judulSurat, pengirim))
+                }
         }
 }

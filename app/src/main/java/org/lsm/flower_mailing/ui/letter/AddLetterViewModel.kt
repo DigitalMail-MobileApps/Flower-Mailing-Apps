@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import java.io.File
 import java.text.SimpleDateFormat
@@ -28,7 +29,8 @@ import org.lsm.flower_mailing.data.repository.IncomingLetterRepository
 import org.lsm.flower_mailing.data.repository.OutgoingLetterRepository
 import org.lsm.flower_mailing.remote.RetrofitClient
 
-class AddLetterViewModel(application: Application) : AndroidViewModel(application) {
+class AddLetterViewModel(application: Application, private val savedStateHandle: SavedStateHandle) :
+        AndroidViewModel(application) {
 
     private val userPreferences = UserPreferencesRepository(application)
 
@@ -92,17 +94,44 @@ class AddLetterViewModel(application: Application) : AndroidViewModel(applicatio
                         "masuk"
                     }
 
-            // Default scope logic
-            if (userRole?.equals("staf_program", ignoreCase = true) == true) {
-                scope = "Eksternal"
+            // Check for reply arguments
+            val replyToId = savedStateHandle.get<String>("replyToId")?.toIntOrNull()
+            val replyToTitle = savedStateHandle.get<String>("replyToTitle")
+            val replyToSender = savedStateHandle.get<String>("replyToSender")
+
+            if (replyToId != null) {
+                determinedJenisSurat = "keluar"
+                // Determine scope based on role, just like new letters
+                scope =
+                        if (userRole?.equals("staf_program", ignoreCase = true) == true) {
+                            "Eksternal"
+                        } else {
+                            "Internal"
+                        }
+                // Pre-fill
+                judulSurat = if (replyToTitle != null) "Re: $replyToTitle" else ""
+                // For reply, the destination (tujuan) is the original sender
+                tujuan = replyToSender ?: ""
+
+                // Store ID for request
+                // We need a field for this
             } else {
-                scope = "Internal"
+                // Default scope logic
+                if (userRole?.equals("staf_program", ignoreCase = true) == true) {
+                    scope = "Eksternal"
+                } else {
+                    scope = "Internal"
+                }
             }
 
             // If outgoing, fetch verifiers
             fetchVerifiers()
         }
     }
+
+    // Helper to get the reply ID from savedState for the request
+    private val inReplyToId: Int?
+        get() = savedStateHandle.get<String>("replyToId")?.toIntOrNull()
 
     fun fetchVerifiers() {
         viewModelScope.launch {
@@ -202,11 +231,12 @@ class AddLetterViewModel(application: Application) : AndroidViewModel(applicatio
                                             nomorAgenda = nomorAgenda,
                                             tanggalSurat = toUtcTimestamp(tanggalSurat),
                                             tanggalMasuk = toUtcTimestamp(tanggalMasuk),
-                                            kesimpulan = kesimpulan
+                                            kesimpulan = kesimpulan,
+                                            inReplyToId = inReplyToId
                                     )
                             android.util.Log.d(
                                     "AddLetterViewModel",
-                                    "Creating outgoing draft with tujuan: $finalTujuan"
+                                    "Creating outgoing draft - nomorAgenda: '$nomorAgenda', kesimpulan: '$kesimpulan', tanggalSurat: '${request.tanggalSurat}', tanggalMasuk: '${request.tanggalMasuk}'"
                             )
                             outgoingRepo.createDraft(request, filePart)
                         } else {
@@ -222,6 +252,7 @@ class AddLetterViewModel(application: Application) : AndroidViewModel(applicatio
                                             fileScanPath = "",
                                             prioritas = prioritas,
                                             isiSurat = isiSurat,
+                                            kesimpulan = kesimpulan,
                                             status = if (isDraft) "draft" else "belum_disposisi"
                                     )
                             incomingRepo.registerLetter(request, filePart)
@@ -310,6 +341,40 @@ class AddLetterViewModel(application: Application) : AndroidViewModel(applicatio
         return sdf.format(Date(millis))
     }
 
+    /**
+     * Convert date string to YYYY-MM-DD format for backend compatibility. Falls back to current
+     * date if input is blank or invalid.
+     */
+    private fun toDateOnlyString(dateStr: String): String {
+        if (dateStr.isBlank()) return getCurrentDateOnly()
+
+        return try {
+            // If already in YYYY-MM-DD format, return as-is
+            if (dateStr.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
+                dateStr
+            } else {
+                // Try to parse and format
+                val inputSdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                val date = inputSdf.parse(dateStr)
+                if (date != null) {
+                    inputSdf.format(date)
+                } else {
+                    getCurrentDateOnly()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            getCurrentDateOnly()
+        }
+    }
+
+    private fun getCurrentDateOnly(): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        sdf.timeZone = TimeZone.getDefault()
+        return sdf.format(Date())
+    }
+
+    // Updated for backend ISO8601 compatibility
     private fun toUtcTimestamp(dateStr: String): String {
         if (dateStr.isBlank()) return getCurrentUtcTimestamp()
 

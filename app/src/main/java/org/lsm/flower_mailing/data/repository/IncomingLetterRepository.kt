@@ -39,6 +39,8 @@ class IncomingLetterRepository(private val api: IncomingLetterApi, private val f
             map["scope"] = createPart(request.scope)
             map["prioritas"] = createPart(request.prioritas)
             map["isi_surat"] = createPart(request.isiSurat)
+            // Status for draft vs submission
+            request.status?.let { map["status"] = createPart(it) }
             // fileScanPath is handled by backend via filePart
 
             val response = api.registerLetter(filePart, map)
@@ -60,13 +62,15 @@ class IncomingLetterRepository(private val api: IncomingLetterApi, private val f
     suspend fun disposeLetter(
             id: Int,
             disposition: String,
-            tujuan: String
+            tujuan: String,
+            needsReply: Boolean = false
     ): Result<IncomingLetterDto> {
         return try {
             val request =
                     org.lsm.flower_mailing.data.model.request.DispositionRequest(
                             disposition,
-                            tujuan
+                            tujuan,
+                            needsReply = needsReply
                     )
             val response = api.disposeLetter(id, request)
             if (response.success) {
@@ -141,6 +145,19 @@ class IncomingLetterRepository(private val api: IncomingLetterApi, private val f
                 Result.success(response.data)
             } else {
                 Result.failure(Exception(response.message ?: "Unknown error"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getLettersNeedingReply(): Result<List<IncomingLetterDto>> {
+        return try {
+            val response = api.getLettersNeedingReply()
+            if (response.success) {
+                Result.success(response.data ?: emptyList())
+            } else {
+                Result.failure(Exception(response.message))
             }
         } catch (e: Exception) {
             Result.failure(e)

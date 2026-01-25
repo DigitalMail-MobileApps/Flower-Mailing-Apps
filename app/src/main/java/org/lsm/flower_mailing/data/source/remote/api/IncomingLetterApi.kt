@@ -64,4 +64,8 @@ interface IncomingLetterApi {
         /** DIRECTOR: Retrieves history of letters dispositioned by this user. */
         @GET("letters/masuk/my-dispositions")
         suspend fun getMyDispositions(): ApiResponse<List<IncomingLetterDto>>
+
+        /** STAFF: Retrieves incoming letters that need a reply (needs_reply = true). */
+        @GET("letters/masuk/needs-reply")
+        suspend fun getLettersNeedingReply(): ApiResponse<List<IncomingLetterDto>>
 }

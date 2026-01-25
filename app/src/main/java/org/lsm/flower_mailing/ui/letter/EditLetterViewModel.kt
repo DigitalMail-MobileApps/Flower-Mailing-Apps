@@ -36,13 +36,15 @@ class EditLetterViewModel(application: Application, savedStateHandle: SavedState
 
     // Form states
     var nomorSurat by mutableStateOf("")
+    var nomorAgenda by mutableStateOf("") // For Keluar only
     var pengirim by mutableStateOf("")
     var judulSurat by mutableStateOf("")
     var tujuan by mutableStateOf("")
     var isiSurat by mutableStateOf("")
+    var kesimpulan by mutableStateOf("") // For Keluar only
     var prioritas by mutableStateOf("biasa")
-    var tanggalSurat by mutableStateOf("") // For Masuk
-    var tanggalMasuk by mutableStateOf("") // For Masuk
+    var tanggalSurat by mutableStateOf("") // YYYY-MM-DD
+    var tanggalMasuk by mutableStateOf("") // YYYY-MM-DD
 
     var isLoading by mutableStateOf(true)
     var errorMessage by mutableStateOf<String?>(null)
@@ -74,14 +76,16 @@ class EditLetterViewModel(application: Application, savedStateHandle: SavedState
                     val letter = result.getOrNull()
                     if (letter != null) {
                         nomorSurat = letter.nomorSurat ?: ""
+                        nomorAgenda = letter.nomorAgenda ?: ""
                         pengirim = letter.pengirim ?: ""
                         judulSurat = letter.judulSurat ?: ""
-                        tujuan = letter.bidangTujuan ?: "" // or 'tujuan' if mapped
+                        tujuan = letter.bidangTujuan ?: ""
                         isiSurat = letter.isiSurat ?: ""
+                        kesimpulan = letter.kesimpulan ?: ""
                         prioritas = letter.prioritas ?: "biasa"
-                        // Dates need formatting? Backend usually returns ISO string.
-                        tanggalSurat = letter.tanggalSurat ?: ""
-                        tanggalMasuk = letter.tanggalMasuk ?: ""
+                        // Convert ISO timestamp to YYYY-MM-DD for display
+                        tanggalSurat = extractDateOnly(letter.tanggalSurat)
+                        tanggalMasuk = extractDateOnly(letter.tanggalMasuk)
                     }
                 } else {
                     errorMessage = "Gagal memuat data: ${result.exceptionOrNull()?.message}"
@@ -91,6 +95,18 @@ class EditLetterViewModel(application: Application, savedStateHandle: SavedState
             } finally {
                 isLoading = false
             }
+        }
+    }
+
+    /** Extract YYYY-MM-DD from ISO timestamp or return as-is if already in that format */
+    private fun extractDateOnly(dateString: String?): String {
+        if (dateString.isNullOrBlank()) return ""
+        // If it contains 'T', it's probably ISO format - extract date part
+        return if (dateString.contains("T")) {
+            dateString.substringBefore("T")
+        } else {
+            // Take first 10 chars if long enough (YYYY-MM-DD = 10 chars)
+            if (dateString.length >= 10) dateString.take(10) else dateString
         }
     }
 
@@ -106,16 +122,16 @@ class EditLetterViewModel(application: Application, savedStateHandle: SavedState
                     val request =
                             UpdateOutgoingLetterRequest(
                                     nomorSurat = nomorSurat,
-                                    pengirim =
-                                            pengirim, // usually fixed but editable for 'Internal'
-                                    // sender text?
+                                    nomorAgenda = nomorAgenda,
+                                    pengirim = pengirim,
                                     judulSurat = judulSurat,
                                     tujuan = tujuan,
                                     isiSurat = isiSurat,
-                                    prioritas = prioritas
-                                    // File update handled separately usually or ignored for
-                                    // metadata edit
-                                    )
+                                    kesimpulan = kesimpulan,
+                                    prioritas = prioritas,
+                                    tanggalSurat = tanggalSurat.ifBlank { null },
+                                    tanggalMasuk = tanggalMasuk.ifBlank { null }
+                            )
                     val result = outgoingRepo.updateLetter(id, request)
                     if (result.isSuccess) _navigateBack.emit(true)
                     else errorMessage = result.exceptionOrNull()?.message
@@ -127,8 +143,8 @@ class EditLetterViewModel(application: Application, savedStateHandle: SavedState
                                     judulSurat = judulSurat,
                                     isiSurat = isiSurat,
                                     prioritas = prioritas,
-                                    tanggalSurat = tanggalSurat,
-                                    tanggalMasuk = tanggalMasuk
+                                    tanggalSurat = tanggalSurat.ifBlank { null },
+                                    tanggalMasuk = tanggalMasuk.ifBlank { null }
                             )
                     val result = incomingRepo.updateLetter(id, request)
                     if (result.isSuccess) _navigateBack.emit(true)

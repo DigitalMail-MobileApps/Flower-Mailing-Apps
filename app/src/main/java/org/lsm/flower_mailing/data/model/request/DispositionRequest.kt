@@ -14,5 +14,6 @@ import com.google.gson.annotations.SerializedName
 data class DispositionRequest(
         @SerializedName("instruksi_disposisi") val disposition: String,
         @SerializedName("tujuan_disposisi") val tujuanDisposisi: String,
-        @SerializedName("catatan") val catatan: String = ""
+        @SerializedName("catatan") val catatan: String = "",
+        @SerializedName("needs_reply") val needsReply: Boolean = false
 )

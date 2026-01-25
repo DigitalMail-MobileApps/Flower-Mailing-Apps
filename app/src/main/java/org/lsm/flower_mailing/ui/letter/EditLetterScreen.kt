@@ -63,6 +63,12 @@ fun EditLetterScreen(viewModel: EditLetterViewModel = viewModel(), onNavigateBac
                                         )
 
                                         FormTextField(
+                                                label = "Nomor Agenda",
+                                                value = viewModel.nomorAgenda,
+                                                onValueChange = { viewModel.nomorAgenda = it }
+                                        )
+
+                                        FormTextField(
                                                 label = "Judul / Perihal",
                                                 value = viewModel.judulSurat,
                                                 onValueChange = { viewModel.judulSurat = it }
@@ -80,11 +86,29 @@ fun EditLetterScreen(viewModel: EditLetterViewModel = viewModel(), onNavigateBac
                                                 onValueChange = { viewModel.tujuan = it }
                                         )
 
+                                        FormTextField(
+                                                label = "Tanggal Surat (YYYY-MM-DD)",
+                                                value = viewModel.tanggalSurat,
+                                                onValueChange = { viewModel.tanggalSurat = it }
+                                        )
+
+                                        FormTextField(
+                                                label = "Tanggal Diterima (YYYY-MM-DD)",
+                                                value = viewModel.tanggalMasuk,
+                                                onValueChange = { viewModel.tanggalMasuk = it }
+                                        )
+
                                         OutlinedTextField(
                                                 value = viewModel.isiSurat,
                                                 onValueChange = { viewModel.isiSurat = it },
                                                 label = { Text("Isi Ringkas") },
                                                 modifier = Modifier.fillMaxWidth().height(120.dp)
+                                        )
+
+                                        FormTextField(
+                                                label = "Kesimpulan",
+                                                value = viewModel.kesimpulan,
+                                                onValueChange = { viewModel.kesimpulan = it }
                                         )
 
                                         Spacer(modifier = Modifier.height(16.dp))

@@ -26,5 +26,7 @@ data class LetterDto(
 
         // Surat Keluar specific
         @SerializedName("BidangTujuan") val bidangTujuan: String? = null,
-        @SerializedName("NomorAgenda") val nomorAgenda: String? = null
+        @SerializedName("NomorAgenda") val nomorAgenda: String? = null,
+        @SerializedName("Kesimpulan") val kesimpulan: String? = null,
+        @SerializedName("needs_reply") val needsReply: Boolean = false
 )

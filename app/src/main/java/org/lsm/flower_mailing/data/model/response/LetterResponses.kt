@@ -21,7 +21,8 @@ data class OutgoingLetterDto(
         @SerializedName("Prioritas") val prioritas: String? = null,
         @SerializedName("IsiSurat") val isiSurat: String? = null,
         @SerializedName("NomorAgenda") val nomorAgenda: String? = null,
-        @SerializedName("TanggalMasuk") val tanggalMasuk: String? = null
+        @SerializedName("TanggalMasuk") val tanggalMasuk: String? = null,
+        @SerializedName("Kesimpulan") val kesimpulan: String? = null
 )
 
 /**
@@ -40,7 +41,10 @@ data class IncomingLetterDto(
         @SerializedName("Prioritas") val prioritas: String? = null,
         @SerializedName("IsiSurat") val isiSurat: String? = null,
         @SerializedName("FilePath") val fileScanPath: String? = null,
-        @SerializedName("CreatedAt") val createdAt: String? = null
+        @SerializedName("CreatedAt") val createdAt: String? = null,
+        @SerializedName("needs_reply") val needsReply: Boolean = false,
+        @SerializedName("in_reply_to_id") val inReplyToId: Int? = null,
+        @SerializedName("Kesimpulan") val kesimpulan: String? = null
 )
 
 /** Wrapper for paginated list responses. */

@@ -39,12 +39,18 @@ import org.lsm.flower_mailing.ui.components.FilePreviewCard
 fun LetterDetailScreen(
         viewModel: LetterDetailViewModel = viewModel(),
         onNavigateBack: () -> Unit,
-        onNavigateToEdit: (Int, String) -> Unit = { _, _ -> }
+        onNavigateToEdit: (Int, String) -> Unit = { _, _ -> },
+        onNavigateToReply: (Int, String, String) -> Unit = { _, _, _ -> }
 ) {
         val uiState by viewModel.uiState.collectAsState()
         val context = LocalContext.current
 
         LaunchedEffect(Unit) { viewModel.navigateBack.collect { if (it) onNavigateBack() } }
+        LaunchedEffect(Unit) {
+                viewModel.navigateToReply.collect { (id, title, sender) ->
+                        onNavigateToReply(id, title, sender)
+                }
+        }
 
         // --- Date Picker Logic ---
         fun showDateTimePicker(initialDateString: String, onDateTimeSet: (Long) -> Unit) {
@@ -533,6 +539,45 @@ fun LetterDetailScreen(
                                                                         enabled =
                                                                                 uiState.isDispositionInfoEditable
                                                                 )
+
+                                                                // Perlu Balasan Checkbox
+                                                                if (uiState.isDispositionInfoEditable
+                                                                ) {
+                                                                        Row(
+                                                                                modifier =
+                                                                                        Modifier.fillMaxWidth(),
+                                                                                verticalAlignment =
+                                                                                        Alignment
+                                                                                                .CenterVertically
+                                                                        ) {
+                                                                                Checkbox(
+                                                                                        checked =
+                                                                                                viewModel
+                                                                                                        .needsReply,
+                                                                                        onCheckedChange = {
+                                                                                                viewModel
+                                                                                                        .needsReply =
+                                                                                                        it
+                                                                                        }
+                                                                                )
+                                                                                Text(
+                                                                                        text =
+                                                                                                "Surat ini perlu balasan",
+                                                                                        style =
+                                                                                                MaterialTheme
+                                                                                                        .typography
+                                                                                                        .bodyMedium,
+                                                                                        modifier =
+                                                                                                Modifier
+                                                                                                        .clickable {
+                                                                                                                viewModel
+                                                                                                                        .needsReply =
+                                                                                                                        !viewModel
+                                                                                                                                .needsReply
+                                                                                                        }
+                                                                                )
+                                                                        }
+                                                                }
                                                         }
                                                 }
                                         }
@@ -716,6 +761,14 @@ fun LetterDetailScreen(
                                                                                 ) {
                                                                                         viewModel
                                                                                                 .onFinalizeSend()
+                                                                                }
+                                                                        }
+                                                                        LetterButtonType.REPLY -> {
+                                                                                PrimaryActionButton(
+                                                                                        "Balas Surat"
+                                                                                ) {
+                                                                                        viewModel
+                                                                                                .onReply()
                                                                                 }
                                                                         }
                                                                 }

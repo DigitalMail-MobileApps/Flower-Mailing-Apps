@@ -7,7 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -41,13 +40,16 @@ private object Routes {
     const val Login = "login"
     const val Forgot = "forgot"
     const val Home = "home"
-    const val AddLetter = "add_letter"
+    const val AddLetter =
+            "add_letter?replyToId={replyToId}&replyToTitle={replyToTitle}&replyToSender={replyToSender}"
     const val LetterDetail = "letter_detail/{letterId}"
     const val Notifications = "notifications"
     const val EditLetter = "edit_letter/{letterId}/{type}"
 
     fun letterDetail(letterId: Int) = "letter_detail/$letterId"
     fun editLetter(letterId: Int, type: String) = "edit_letter/$letterId/$type"
+    fun addReply(replyToId: Int, title: String, sender: String) =
+            "add_letter?replyToId=$replyToId&replyToTitle=$title&replyToSender=$sender"
 }
 
 class MainActivity : ComponentActivity() {
@@ -75,14 +77,14 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
                 ) {
                     CompositionLocalProvider(LocalOverscrollFactory provides null) {
                         AppNavHost(
-                            nav = nav,
-                            isLoggedIn = isLoggedIn,
-                            loginViewModel = loginViewModel
+                                nav = nav,
+                                isLoggedIn = isLoggedIn,
+                                loginViewModel = loginViewModel
                         )
                     }
                 }
@@ -99,14 +101,11 @@ class MainActivity : ComponentActivity() {
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
 private fun AppNavHost(
-    nav: NavHostController,
-    isLoggedIn: Boolean?,
-    loginViewModel: LoginViewModel
+        nav: NavHostController,
+        isLoggedIn: Boolean?,
+        loginViewModel: LoginViewModel
 ) {
-    NavHost(
-        navController = nav,
-        startDestination = Routes.Splash
-    ) {
+    NavHost(navController = nav, startDestination = Routes.Splash) {
         splashRoute(nav, isLoggedIn)
         loginRoute(nav, loginViewModel)
         forgotRoute(nav, loginViewModel)
@@ -118,137 +117,112 @@ private fun AppNavHost(
     }
 }
 
-private fun NavGraphBuilder.splashRoute(
-    nav: NavHostController,
-    isLoggedIn: Boolean?
-) {
+private fun NavGraphBuilder.splashRoute(nav: NavHostController, isLoggedIn: Boolean?) {
     composable(Routes.Splash) {
         SplashScreen(onTimeout = {})
         LaunchedEffect(isLoggedIn) {
             if (isLoggedIn != null) {
                 val destination = if (isLoggedIn) Routes.Home else Routes.Login
-                nav.navigate(destination) {
-                    popUpTo(Routes.Splash) { inclusive = true }
-                }
+                nav.navigate(destination) { popUpTo(Routes.Splash) { inclusive = true } }
             }
         }
     }
 }
 
-fun NavGraphBuilder.loginRoute(
-    nav: NavHostController,
-    loginViewModel: LoginViewModel
-) {
+fun NavGraphBuilder.loginRoute(nav: NavHostController, loginViewModel: LoginViewModel) {
     composable(Routes.Login) {
         LoginScreen(
-            loginViewModel = loginViewModel,
-            onNavigateToForgotPassword = { nav.navigate(Routes.Forgot) },
-            onLoggedIn = {
-                nav.navigate(Routes.Home) {
-                    popUpTo(nav.graph.findStartDestination().id) { inclusive = true }
+                loginViewModel = loginViewModel,
+                onNavigateToForgotPassword = { nav.navigate(Routes.Forgot) },
+                onLoggedIn = {
+                    nav.navigate(Routes.Home) {
+                        popUpTo(nav.graph.findStartDestination().id) { inclusive = true }
+                    }
                 }
-            }
         )
     }
 }
 
-private fun NavGraphBuilder.forgotRoute(
-    nav: NavHostController,
-    loginViewModel: LoginViewModel
-) {
+private fun NavGraphBuilder.forgotRoute(nav: NavHostController, loginViewModel: LoginViewModel) {
     composable(Routes.Forgot) {
         ForgotPasswordScreen(
-            loginViewModel = loginViewModel,
-            onNavigateBack = { nav.popBackStack() }
+                loginViewModel = loginViewModel,
+                onNavigateBack = { nav.popBackStack() }
         )
     }
 }
 
-private fun NavGraphBuilder.homeRoute(
-    nav: NavHostController,
-    loginViewModel: LoginViewModel
-) {
+private fun NavGraphBuilder.homeRoute(nav: NavHostController, loginViewModel: LoginViewModel) {
     composable(Routes.Home) {
         HomeScreen(
-            onLoggedOut = {
-                loginViewModel.onLogout()
-                nav.navigate(Routes.Login) {
-                    popUpTo(nav.graph.id) {
-                        inclusive = true
+                onLoggedOut = {
+                    loginViewModel.onLogout()
+                    nav.navigate(Routes.Login) {
+                        popUpTo(nav.graph.id) { inclusive = true }
+                        launchSingleTop = true
                     }
-                    launchSingleTop = true
-                }
-            },
-            onNavigateToAddLetter = {
-                nav.navigate(Routes.AddLetter)
-            },
-            onNavigateToLetterDetail = { letterId ->
-                nav.navigate(Routes.letterDetail(letterId))
-            },
-            onNavigateToNotifications = {
-                nav.navigate(Routes.Notifications)
-            }
+                },
+                onNavigateToAddLetter = { nav.navigate(Routes.AddLetter) },
+                onNavigateToLetterDetail = { letterId ->
+                    nav.navigate(Routes.letterDetail(letterId))
+                },
+                onNavigateToNotifications = { nav.navigate(Routes.Notifications) }
         )
     }
 }
 
-private fun NavGraphBuilder.addLetterRoute(
-    nav: NavHostController
-) {
-    composable(Routes.AddLetter) {
-        AddLetterScreen(
-            onNavigateBack = {
-                nav.popBackStack()
-            }
-        )
-    }
-}
-
-private fun NavGraphBuilder.letterDetailRoute(
-    nav: NavHostController
-) {
+private fun NavGraphBuilder.addLetterRoute(nav: NavHostController) {
     composable(
-        route = Routes.LetterDetail,
-        arguments = listOf(navArgument("letterId") { type = NavType.StringType })
+            route = Routes.AddLetter,
+            arguments = listOf(navArgument("replyToSender") { nullable = true })
+    ) {
+        AddLetterScreen(
+                onNavigateBack = { isSuccess ->
+                    if (isSuccess) {
+                        // On success, go back to Home (pop LetterDetail if present)
+                        nav.popBackStack(Routes.Home, inclusive = false)
+                    } else {
+                        // On cancel/back, just pop the current screen
+                        nav.popBackStack()
+                    }
+                }
+        )
+    }
+}
+
+private fun NavGraphBuilder.letterDetailRoute(nav: NavHostController) {
+    composable(
+            route = Routes.LetterDetail,
+            arguments = listOf(navArgument("letterId") { type = NavType.StringType })
     ) {
         LetterDetailScreen(
-            onNavigateBack = {
-                nav.popBackStack()
-            },
-            onNavigateToEdit = { letterId, type ->
-                nav.navigate(Routes.editLetter(letterId, type))
-            }
+                onNavigateBack = { nav.popBackStack() },
+                onNavigateToEdit = { letterId, type ->
+                    nav.navigate(Routes.editLetter(letterId, type))
+                },
+                onNavigateToReply = { replyId, title, sender ->
+                    nav.navigate(Routes.addReply(replyId, title, sender))
+                }
         )
     }
 }
 
-private fun NavGraphBuilder.editLetterRoute(
-    nav: NavHostController
-) {
+private fun NavGraphBuilder.editLetterRoute(nav: NavHostController) {
     composable(
-        route = Routes.EditLetter,
-        arguments = listOf(
-            navArgument("letterId") { type = NavType.StringType },
-            navArgument("type") { type = NavType.StringType }
-        )
-    ) {
-        org.lsm.flower_mailing.ui.letter.EditLetterScreen(
-            onNavigateBack = {
-                nav.popBackStack()
-            }
-        )
-    }
+            route = Routes.EditLetter,
+            arguments =
+                    listOf(
+                            navArgument("letterId") { type = NavType.StringType },
+                            navArgument("type") { type = NavType.StringType }
+                    )
+    ) { org.lsm.flower_mailing.ui.letter.EditLetterScreen(onNavigateBack = { nav.popBackStack() }) }
 }
 
-private fun NavGraphBuilder.notificationRoute(
-    nav: NavHostController
-) {
+private fun NavGraphBuilder.notificationRoute(nav: NavHostController) {
     composable(Routes.Notifications) {
         NotificationScreen(
-            onNavigateBack = { nav.popBackStack() },
-            onNavigateToLetter = { letterId ->
-                nav.navigate(Routes.letterDetail(letterId))
-            }
+                onNavigateBack = { nav.popBackStack() },
+                onNavigateToLetter = { letterId -> nav.navigate(Routes.letterDetail(letterId)) }
         )
     }
 }

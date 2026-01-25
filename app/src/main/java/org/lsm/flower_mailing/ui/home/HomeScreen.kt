@@ -48,6 +48,7 @@ fun HomeScreen(
                 userRole.equals("staf_program", ignoreCase = true) -> {
                     listOf(
                             HomeRoute.Home,
+                            HomeRoute.SuratMasuk, // Needs Reply letters
                             HomeRoute.SuratKeluar, // Their outgoing letters
                             HomeRoute.History,
                     ) to HomeRoute.Home.route

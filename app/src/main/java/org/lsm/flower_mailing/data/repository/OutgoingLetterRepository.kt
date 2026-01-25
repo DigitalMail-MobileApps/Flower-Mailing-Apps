@@ -48,6 +48,8 @@ class OutgoingLetterRepository(private val api: OutgoingLetterApi, private val f
             map["tanggal_surat"] = createPart(request.tanggalSurat)
             map["tanggal_masuk"] = createPart(request.tanggalMasuk)
             map["kesimpulan"] = createPart(request.kesimpulan)
+            // Reply linking: only include if set
+            request.inReplyToId?.let { map["in_reply_to_id"] = createPart(it.toString()) }
             // filePath is handled by backend via filePart, ignore request.filePath
 
             val response = api.createDraft(filePart, map)

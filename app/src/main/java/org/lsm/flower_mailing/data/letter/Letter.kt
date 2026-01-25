@@ -25,7 +25,8 @@ data class Letter(
         @SerializedName("FilePath") val filePath: String? = null,
         @SerializedName("CreatedAt") val createdAt: String? = null,
         @SerializedName("scope") // Explicit lowercase json tag in backend
-        val scope: String? = null
+        val scope: String? = null,
+        @SerializedName("needs_reply") val needsReply: Boolean = false
 )
 
 data class LetterDataPayload(

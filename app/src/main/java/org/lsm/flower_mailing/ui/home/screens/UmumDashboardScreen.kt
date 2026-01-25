@@ -103,6 +103,21 @@ fun UmumDashboardScreen(
                                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                                         ) {
                                                 StatCard(
+                                                        title = "Perlu Balasan", // Customized title
+                                                        // for clarity
+                                                        count = inboxList.size.toString(),
+                                                        icon = Icons.Default.Inbox,
+                                                        color =
+                                                                MaterialTheme.colorScheme
+                                                                        .errorContainer, // Urgent
+                                                        // color
+                                                        onColor =
+                                                                MaterialTheme.colorScheme
+                                                                        .onErrorContainer,
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        onClick = onNavigateToSuratMasuk
+                                                )
+                                                StatCard(
                                                         title = "Surat Keluar Saya",
                                                         count = suratKeluarList.size.toString(),
                                                         icon = Icons.Default.Outbox,
@@ -320,7 +335,9 @@ fun UmumDashboardScreen(
                                 showSuratKeluar =
                                         !isAdmin, // Everyone except Admin sees Surat Keluar
                                 showSuratMasuk =
-                                        isStafLembaga, // Only Staf Lembaga registers Surat Masuk
+                                        isStafLembaga ||
+                                                isStafProgram, // Staf Lembaga registers, Staf
+                                // Program replies
                                 showHistory = !isAdmin // Hide History for Admin
                         )
 

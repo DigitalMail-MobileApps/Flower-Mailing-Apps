@@ -30,5 +30,7 @@ data class CreateOutgoingLetterRequest(
         @SerializedName("nomor_agenda") val nomorAgenda: String,
         @SerializedName("tanggal_surat") val tanggalSurat: String, // String ISO or formatted
         @SerializedName("tanggal_masuk") val tanggalMasuk: String, // String ISO or formatted
-        @SerializedName("kesimpulan") val kesimpulan: String
+        @SerializedName("kesimpulan") val kesimpulan: String,
+        @SerializedName("in_reply_to_id")
+        val inReplyToId: Int? = null // Optional: ID of incoming letter being replied to
 )
