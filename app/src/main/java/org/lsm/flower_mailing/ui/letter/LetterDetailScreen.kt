@@ -490,13 +490,16 @@ fun LetterDetailScreen(
                                                                 verticalArrangement =
                                                                         Arrangement.spacedBy(16.dp)
                                                         ) {
-                                                                FormTextField(
+                                                                FormDropdown(
                                                                         label =
                                                                                 "Tujuan Disposisi (Bidang)",
-                                                                        value =
+                                                                        options =
+                                                                                viewModel
+                                                                                        .disposisiTargetOptions,
+                                                                        selectedOption =
                                                                                 viewModel
                                                                                         .bidangTujuan,
-                                                                        onValueChange = {
+                                                                        onOptionSelected = {
                                                                                 viewModel
                                                                                         .bidangTujuan =
                                                                                         it
