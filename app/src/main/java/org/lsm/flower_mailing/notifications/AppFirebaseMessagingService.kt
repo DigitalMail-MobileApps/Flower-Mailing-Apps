@@ -33,13 +33,15 @@ class AppFirebaseMessagingService : FirebaseMessagingService() {
             val action = data["action"]
             val status = data["status"]
 
-            val title = message.notification?.title ?: when (action) {
+            // Read title and body from data payload (sent by backend)
+            // Fallback to default values if not present
+            val title = data["title"] ?: when (action) {
                 "letter_created" -> "Surat Masuk Baru"
                 "status_change" -> "Update Status Surat"
                 else -> "Notifikasi Surat"
             }
 
-            val body = message.notification?.body ?: when (action) {
+            val body = data["body"] ?: when (action) {
                 "letter_created" -> "Ada surat baru yang perlu diproses."
                 "status_change" -> "Status surat berubah menjadi: ${formatStatus(status)}"
                 else -> "Ketuk untuk melihat detail."
@@ -103,7 +105,8 @@ class AppFirebaseMessagingService : FirebaseMessagingService() {
         )
 
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(context.getColor(R.color.purple_500))
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

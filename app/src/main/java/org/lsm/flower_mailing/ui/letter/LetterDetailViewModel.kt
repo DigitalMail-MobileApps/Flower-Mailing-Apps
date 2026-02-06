@@ -40,6 +40,7 @@ enum class LetterButtonType {
         SAVE_DRAFT,
         SUBMIT_TO_STAF_PROGRAM,
         VERIFY_AND_FORWARD,
+        VERIFY_REJECT, // Manager rejects letter during verification
         SUBMIT_DISPOSITION,
         SUBMIT_LETTER, // New button for submitting Surat Masuk draft
 
@@ -96,6 +97,7 @@ class LetterDetailViewModel(
         var bidangTujuan by mutableStateOf("")
         var tanggalDisposisi by mutableStateOf("")
         var scope by mutableStateOf("")
+        var jenisSurat by mutableStateOf("")
         var needsReply by mutableStateOf(false)
 
         val prioritasOptions = listOf("biasa", "segera", "penting")
@@ -153,6 +155,7 @@ class LetterDetailViewModel(
                 disposisi = letter.disposisi ?: ""
                 bidangTujuan = letter.bidangTujuan ?: ""
                 scope = letter.scope ?: ""
+                jenisSurat = letter.jenisSurat
 
                 val status = letter.status
                 val isActionNeeded =
@@ -246,9 +249,7 @@ class LetterDetailViewModel(
                                                                 buttons =
                                                                         listOf(
                                                                                 LetterButtonType
-                                                                                        .APPROVE_LETTER,
-                                                                                LetterButtonType
-                                                                                        .REJECT_REVISION
+                                                                                        .APPROVE_LETTER
                                                                         )
                                                         )
                                                 else ->
@@ -271,7 +272,9 @@ class LetterDetailViewModel(
                                                                 buttons =
                                                                         listOf(
                                                                                 LetterButtonType
-                                                                                        .VERIFY_AND_FORWARD
+                                                                                        .VERIFY_AND_FORWARD,
+                                                                                LetterButtonType
+                                                                                        .VERIFY_REJECT
                                                                         )
                                                         )
                                                 else ->
@@ -376,29 +379,61 @@ class LetterDetailViewModel(
                                                                 buttons = emptyList()
                                                         )
                                         }
+                                // Manajer roles can view surat masuk (read-only, for information)
+                                role?.contains("manajer", ignoreCase = true) == true ->
+                                        LetterUiState(
+                                                isLoading = false,
+                                                isLetterInfoEditable = false,
+                                                isDispositionSectionVisible = true,
+                                                isDispositionInfoEditable = false,
+                                                downloadUrl = letter.filePath,
+                                                buttons = emptyList()
+                                        )
+                                // Fallback for other roles (e.g., admin) - read-only view without error
                                 else ->
                                         LetterUiState(
                                                 isLoading = false,
-                                                errorMessage = "Unknown user role"
+                                                isLetterInfoEditable = false,
+                                                downloadUrl = letter.filePath,
+                                                buttons = emptyList()
                                         )
                         }
                 _uiState.value = newState.copy(status = status)
         }
 
         fun onSaveDraft() {
-                submitUpdate(
-                        UpdateLetterRequest(
-                                judulSurat = judulSurat,
-                                pengirim = pengirim,
-                                nomorSurat = nomorSurat,
-                                nomorAgenda = nomorAgenda,
-                                prioritas = prioritas,
-                                tanggalSurat = toUtcTimestamp(tanggalSurat),
-                                isiSurat = isiSurat,
-                                kesimpulan = kesimpulan,
-                                status = "draft"
-                        )
-                )
+                // Save draft for Surat Keluar
+                // Must use OutgoingLetterRepository for correct endpoint: PUT letters/keluar/{id}
+                viewModelScope.launch {
+                        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+                        try {
+                                val request = org.lsm.flower_mailing.data.model.request.UpdateOutgoingLetterRequest(
+                                        judulSurat = judulSurat,
+                                        pengirim = pengirim,
+                                        nomorSurat = nomorSurat,
+                                        nomorAgenda = nomorAgenda,
+                                        prioritas = prioritas,
+                                        tanggalSurat = toUtcTimestamp(tanggalSurat),
+                                        isiSurat = isiSurat,
+                                        kesimpulan = kesimpulan,
+                                        status = "draft"
+                                )
+                                val result = outgoingRepo.updateLetter(letterId.toInt(), request)
+                                if (result.isSuccess) {
+                                        _navigateBack.emit(true)
+                                } else {
+                                        _uiState.value = _uiState.value.copy(
+                                                isLoading = false,
+                                                errorMessage = result.exceptionOrNull()?.message
+                                        )
+                                }
+                        } catch (e: Exception) {
+                                _uiState.value = _uiState.value.copy(
+                                        isLoading = false,
+                                        errorMessage = e.message
+                                )
+                        }
+                }
         }
 
         fun onSubmitLetter() {
@@ -491,6 +526,29 @@ class LetterDetailViewModel(
                 }
         }
 
+        fun onVerifyReject() {
+                // Manager rejects the letter (Surat Keluar) during verification
+                viewModelScope.launch {
+                        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+                        try {
+                                val result = outgoingRepo.verifyLetterReject(letterId.toInt())
+                                if (result.isSuccess) {
+                                        _navigateBack.emit(true)
+                                } else {
+                                        _uiState.value = _uiState.value.copy(
+                                                isLoading = false,
+                                                errorMessage = result.exceptionOrNull()?.message
+                                        )
+                                }
+                        } catch (e: Exception) {
+                                _uiState.value = _uiState.value.copy(
+                                        isLoading = false,
+                                        errorMessage = e.message
+                                )
+                        }
+                }
+        }
+
         fun onSubmitDisposition() {
                 // Director adds disposition (Surat Masuk)
                 viewModelScope.launch {
@@ -527,41 +585,40 @@ class LetterDetailViewModel(
         }
 
         fun onAjukanPersetujuan() {
-                // Staff/ADC submits for approval (Status -> Perlu Verifikasi is handled by create?
-                // Or logic
-                // update?)
-                // If Logic: Draft -> Perlu Verifikasi.
-                // Used generic update previously. OutgoingRepo doesn't have "submitForVerification"
-                // explicit endpoint other than create?
-                // Check API. createDraft returns draft.
-                // We might need a "submit" endpoint or just update status.
-                // OutgoingLetterApi has `updateLetter`.
-                // Let's use outgoingRepo.updateLetter (which we need to expose or access API).
-                // Since I didn't add updateLetter wrapper in Repo yet (checked Step 267, not
-                // there), I
-                // should add it or use generic API?
-                // OutgoingLetterApi has `updateLetter`.
-                // I'll stick to legacy `submitUpdate` for this one OR implement `updateLetter` in
-                // Repo.
-                // For Gap Analysis, Verify/Approve/Dispose were the missing keys.
-                // I will leave this as is (legacy) or just update status.
-
-                // Use Legacy Update for now as it maps to `updateLetter` in API likely.
-                submitUpdate(
-                        UpdateLetterRequest(
-                                judulSurat = judulSurat,
-                                pengirim = pengirim,
-                                nomorSurat = nomorSurat,
-                                nomorAgenda = nomorAgenda,
-                                prioritas = prioritas,
-                                tanggalSurat = toUtcTimestamp(tanggalSurat),
-                                isiSurat = isiSurat,
-                                kesimpulan = kesimpulan,
-                                status = "perlu_verifikasi" // Draft -> Verifikasi (Manajer) ->
-                                // Persetujuan
-                                // (Direktur)
+                // Staff submits draft for verification by Manager
+                // Status transition: Draft -> Perlu Verifikasi
+                // Must use OutgoingLetterRepository to hit the correct endpoint: PUT letters/keluar/{id}
+                // The legacy submitUpdate() uses PUT letters/{id} which doesn't exist (405 error)
+                viewModelScope.launch {
+                        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+                        try {
+                                val request = org.lsm.flower_mailing.data.model.request.UpdateOutgoingLetterRequest(
+                                        judulSurat = judulSurat,
+                                        pengirim = pengirim,
+                                        nomorSurat = nomorSurat,
+                                        nomorAgenda = nomorAgenda,
+                                        prioritas = prioritas,
+                                        tanggalSurat = toUtcTimestamp(tanggalSurat),
+                                        isiSurat = isiSurat,
+                                        kesimpulan = kesimpulan,
+                                        status = "perlu_verifikasi" // Draft -> Verifikasi (Manajer)
                                 )
-                )
+                                val result = outgoingRepo.updateLetter(letterId.toInt(), request)
+                                if (result.isSuccess) {
+                                        _navigateBack.emit(true)
+                                } else {
+                                        _uiState.value = _uiState.value.copy(
+                                                isLoading = false,
+                                                errorMessage = result.exceptionOrNull()?.message
+                                        )
+                                }
+                        } catch (e: Exception) {
+                                _uiState.value = _uiState.value.copy(
+                                        isLoading = false,
+                                        errorMessage = e.message
+                                )
+                        }
+                }
         }
 
         fun onApproveLetter() {
@@ -617,16 +674,30 @@ class LetterDetailViewModel(
         }
 
         fun onRejectRevision() {
-                // Director rejects (Surat Keluar)
-                // This implies updating status to 'perlu_revisi'.
-                // Is there a specific endpoint? No, usually update status.
-                submitUpdate(
-                        UpdateLetterRequest(
-                                disposisi = disposisi,
-                                tanggalDisposisi = toUtcTimestamp(tanggalDisposisi),
-                                status = "perlu_revisi"
-                        )
-                )
+                // Director rejects Surat Keluar - status to 'perlu_revisi'
+                // Must use OutgoingLetterRepository for correct endpoint: PUT letters/keluar/{id}
+                viewModelScope.launch {
+                        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+                        try {
+                                val request = org.lsm.flower_mailing.data.model.request.UpdateOutgoingLetterRequest(
+                                        status = "perlu_revisi"
+                                )
+                                val result = outgoingRepo.updateLetter(letterId.toInt(), request)
+                                if (result.isSuccess) {
+                                        _navigateBack.emit(true)
+                                } else {
+                                        _uiState.value = _uiState.value.copy(
+                                                isLoading = false,
+                                                errorMessage = result.exceptionOrNull()?.message
+                                        )
+                                }
+                        } catch (e: Exception) {
+                                _uiState.value = _uiState.value.copy(
+                                        isLoading = false,
+                                        errorMessage = e.message
+                                )
+                        }
+                }
         }
 
         fun onFinalizeSend() {

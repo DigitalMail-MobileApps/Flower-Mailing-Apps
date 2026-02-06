@@ -34,6 +34,13 @@ import org.lsm.flower_mailing.ui.letter.AddLetterScreen
 import org.lsm.flower_mailing.ui.letter.LetterDetailScreen
 import org.lsm.flower_mailing.ui.notification.NotificationScreen // <-- Import this
 import org.lsm.flower_mailing.ui.theme.FlowermailingTheme
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalContext
 
 private object Routes {
     const val Splash = "splash"
@@ -52,6 +59,8 @@ private object Routes {
             "add_letter?replyToId=$replyToId&replyToTitle=$title&replyToSender=$sender"
 }
 
+
+
 class MainActivity : ComponentActivity() {
     private val loginViewModel: LoginViewModel by viewModels()
 
@@ -63,6 +72,26 @@ class MainActivity : ComponentActivity() {
         setContent {
             FlowermailingTheme {
                 val nav = rememberNavController()
+
+                // Permission Request Logic for Android 13+
+                val context = LocalContext.current
+                val permissionLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestPermission(),
+                    onResult = { }
+                )
+
+                LaunchedEffect(Unit) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        if (ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.POST_NOTIFICATIONS
+                            ) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    }
+                }
+
                 val isLoggedIn by loginViewModel.isLoggedIn.collectAsStateWithLifecycle()
                 LaunchedEffect(isLoggedIn) {
                     if (isLoggedIn == true) {

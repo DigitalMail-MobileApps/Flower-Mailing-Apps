@@ -65,7 +65,8 @@ fun EditLetterScreen(viewModel: EditLetterViewModel = viewModel(), onNavigateBac
                                         FormTextField(
                                                 label = "Nomor Agenda",
                                                 value = viewModel.nomorAgenda,
-                                                onValueChange = { viewModel.nomorAgenda = it }
+                                                onValueChange = { viewModel.nomorAgenda = it },
+                                                enabled = false
                                         )
 
                                         FormTextField(
@@ -145,7 +146,8 @@ private fun FormTextField(
         maxLines: Int = 1,
         singleLine: Boolean = true,
         isError: Boolean = false,
-        icon: ImageVector? = null
+        icon: ImageVector? = null,
+        enabled: Boolean = true
 ) {
         OutlinedTextField(
                 value = value,
@@ -156,6 +158,7 @@ private fun FormTextField(
                 maxLines = maxLines,
                 singleLine = singleLine,
                 isError = isError,
+                enabled = enabled,
                 leadingIcon =
                         if (icon != null) {
                                 { Icon(icon, null, tint = MaterialTheme.colorScheme.outline) }

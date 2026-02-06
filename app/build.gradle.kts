@@ -14,8 +14,8 @@ android {
         applicationId = "org.lsm.flower_mailing"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.0.4"
+        versionCode = 5
+        versionName = "1.0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -35,7 +35,7 @@ android {
     }
 
     kotlin { jvmToolchain(17) }
-
+    
     buildFeatures { compose = true }
     signingConfigs {
         create("release") {

@@ -229,6 +229,25 @@ fun LetterDetailScreen(
                                                                         onColor = contentColor
                                                                 )
                                                         }
+
+                                                        // Jenis Surat Chip
+                                                        if (viewModel.jenisSurat.isNotBlank()) {
+                                                                val (jContainerColor, jContentColor) =
+                                                                        if (viewModel.jenisSurat == "masuk")
+                                                                                MaterialTheme.colorScheme.primaryContainer to
+                                                                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                                                        else
+                                                                                MaterialTheme.colorScheme.surfaceContainerHighest to
+                                                                                        MaterialTheme.colorScheme.onSurface
+                                                                LetterTag(
+                                                                        text =
+                                                                                if (viewModel.jenisSurat == "masuk")
+                                                                                        "Surat Masuk"
+                                                                                else "Surat Keluar",
+                                                                        color = jContainerColor,
+                                                                        onColor = jContentColor
+                                                                )
+                                                        }
                                                 }
                                         }
 
@@ -265,8 +284,7 @@ fun LetterDetailScreen(
                                                                                         .nomorAgenda =
                                                                                         it
                                                                         },
-                                                                        enabled =
-                                                                                uiState.isLetterInfoEditable,
+                                                                        enabled = false, // Always read-only
                                                                         modifier =
                                                                                 Modifier.weight(1f),
                                                                         icon = Icons.Default.Tag
@@ -324,7 +342,7 @@ fun LetterDetailScreen(
                                                                 Arrangement.spacedBy(16.dp)
                                                 ) {
                                                         FormTextField(
-                                                                label = "Pengirim / Tujuan",
+                                                                label = if (viewModel.jenisSurat == "masuk") "Pengirim" else "Tujuan",
                                                                 value = viewModel.pengirim,
                                                                 onValueChange = {
                                                                         viewModel.pengirim = it
@@ -490,19 +508,14 @@ fun LetterDetailScreen(
                                                                 verticalArrangement =
                                                                         Arrangement.spacedBy(16.dp)
                                                         ) {
-                                                                FormTextField(
-                                                                        label =
-                                                                                "Tujuan Disposisi (Bidang)",
-                                                                        value =
-                                                                                viewModel
-                                                                                        .bidangTujuan,
-                                                                        onValueChange = {
-                                                                                viewModel
-                                                                                        .bidangTujuan =
-                                                                                        it
+                                                                FormDropdown(
+                                                                        label = "Tujuan Disposisi (Bidang)",
+                                                                        options = listOf("KPP", "PEMAS", "PKL"),
+                                                                        selectedOption = viewModel.bidangTujuan,
+                                                                        onOptionSelected = {
+                                                                                viewModel.bidangTujuan = it
                                                                         },
-                                                                        enabled =
-                                                                                uiState.isDispositionInfoEditable
+                                                                        enabled = uiState.isDispositionInfoEditable
                                                                 )
                                                                 FormTextField(
                                                                         label =
@@ -540,8 +553,9 @@ fun LetterDetailScreen(
                                                                                 uiState.isDispositionInfoEditable
                                                                 )
 
-                                                                // Perlu Balasan Checkbox
-                                                                if (uiState.isDispositionInfoEditable
+                                                                // Perlu Balasan Checkbox - only for Surat Masuk
+                                                                if (uiState.isDispositionInfoEditable &&
+                                                                        viewModel.jenisSurat == "masuk"
                                                                 ) {
                                                                         Row(
                                                                                 modifier =
@@ -705,6 +719,17 @@ fun LetterDetailScreen(
                                                                                         viewModel
                                                                                                 .onVerifyAndForward()
                                                                                 }
+                                                                        }
+                                                                        LetterButtonType
+                                                                                .VERIFY_REJECT -> {
+                                                                                ActionButton(
+                                                                                        text = "Tolak Surat",
+                                                                                        color = MaterialTheme.colorScheme.error,
+                                                                                        onClick = {
+                                                                                                viewModel
+                                                                                                        .onVerifyReject()
+                                                                                        }
+                                                                                )
                                                                         }
                                                                         LetterButtonType
                                                                                 .SUBMIT_DISPOSITION -> {

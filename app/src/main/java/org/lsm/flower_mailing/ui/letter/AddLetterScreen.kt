@@ -252,15 +252,15 @@ fun AddLetterScreen(
                                                 }
                                         }
                                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                                FormTextField(
-                                                        label = "No. Agenda",
-                                                        value = viewModel.nomorAgenda,
-                                                        onValueChange = {
-                                                                viewModel.nomorAgenda = it
-                                                        },
-                                                        modifier = Modifier.weight(1f),
-                                                        icon = Icons.Default.Tag
-                                                )
+//                                                FormTextField(
+//                                                        label = "No. Agenda",
+//                                                        value = viewModel.nomorAgenda,
+//                                                        onValueChange = {
+//                                                                viewModel.nomorAgenda = it
+//                                                        },
+//                                                        modifier = Modifier.weight(1f),
+//                                                        icon = Icons.Default.Tag
+//                                                )
                                                 FormTextField(
                                                         label = "No. Surat",
                                                         value = viewModel.nomorSurat,
