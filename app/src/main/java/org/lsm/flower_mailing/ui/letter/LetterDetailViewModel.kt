@@ -101,6 +101,15 @@ class LetterDetailViewModel(
         var needsReply by mutableStateOf(false)
 
         val prioritasOptions = listOf("biasa", "segera", "penting")
+        val disposisiTargetOptions =
+                listOf(
+                        "Staf Program",
+                        "Staf Lembaga",
+                        "Manajer",
+                        "Keuangan",
+                        "Sekretaris",
+                        "Lainnya"
+                )
 
         private val _uiState = MutableStateFlow(LetterUiState())
         val uiState = _uiState.asStateFlow()

@@ -508,12 +508,16 @@ fun LetterDetailScreen(
                                                                 verticalArrangement =
                                                                         Arrangement.spacedBy(16.dp)
                                                         ) {
-                                                                FormDropdown(
-                                                                        label = "Tujuan Disposisi (Bidang)",
-                                                                        options = listOf("KPP", "PEMAS", "PKL"),
-                                                                        selectedOption = viewModel.bidangTujuan,
-                                                                        onOptionSelected = {
-                                                                                viewModel.bidangTujuan = it
+                                                                FormTextField(
+                                                                        label =
+                                                                                "Tujuan Disposisi (Bidang)",
+                                                                        value =
+                                                                                viewModel
+                                                                                        .bidangTujuan,
+                                                                        onValueChange = {
+                                                                                viewModel
+                                                                                        .bidangTujuan =
+                                                                                        it
                                                                         },
                                                                         enabled = uiState.isDispositionInfoEditable
                                                                 )
