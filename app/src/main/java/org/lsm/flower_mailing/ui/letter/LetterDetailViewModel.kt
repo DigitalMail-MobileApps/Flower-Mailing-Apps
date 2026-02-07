@@ -734,39 +734,7 @@ class LetterDetailViewModel(
                 }
         }
 
-        fun verifyLetterApprove() {
-                viewModelScope.launch {
-                        _uiState.value = _uiState.value.copy(isLoading = true)
-                        try {
-                                // Since update logic for approval is specific (maybe just
-                                // triggering approve endpoint?)
-                                // Originally this function seemed to want to verify before approve?
-                                // Assuming approveLetter does both or logic is simpler.
-                                // The original code was seemingly incomplete or trying to append.
-                                // I will implement a standard approve call here if needed, or rely
-                                // on existing approveLetter.
-                                // Actually, looking at previous context, approveLetter IS the
-                                // function in Repo.
-                                val result = outgoingRepo.approveLetter(letterId.toInt())
-                                if (result.isSuccess) {
-                                        _navigateBack.emit(true)
-                                } else {
-                                        _uiState.value =
-                                                _uiState.value.copy(
-                                                        isLoading = false,
-                                                        errorMessage =
-                                                                result.exceptionOrNull()?.message
-                                                )
-                                }
-                        } catch (e: Exception) {
-                                _uiState.value =
-                                        _uiState.value.copy(
-                                                isLoading = false,
-                                                errorMessage = e.message
-                                        )
-                        }
-                }
-        }
+
 
         fun deleteLetter() {
                 viewModelScope.launch {

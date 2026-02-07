@@ -764,7 +764,7 @@ fun LetterDetailScreen(
                                                                                                 ), // Green
                                                                                         onClick = {
                                                                                                 viewModel
-                                                                                                        .verifyLetterApprove()
+                                                                                                        .onApproveLetter()
                                                                                         }
                                                                                 )
                                                                         }
